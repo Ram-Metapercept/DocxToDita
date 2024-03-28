@@ -12,7 +12,7 @@ const { DOMParser, XMLSerializer } = require("xmldom");
 
 const cheerio = require("cheerio");
 const e = require("express");
-const inputDocxFile = path.join(__dirname, "input2.docx");
+const inputDocxFile = path.join(__dirname, "aaaLatest.docx");
 const outputFilePath = "output.dita";
 
 async function convertDocxToDita() {
@@ -21,29 +21,24 @@ async function convertDocxToDita() {
       convertImage: mammoth.images.inline((element, inlineOptions) => {
         let a = fs.readFile(element).then((buffer) => {
           const base64Image = buffer.toString("base64");
-
           return { src: `data:${element.contentType};base64,${base64Image}` };
         });
         return a;
       }),
 
       // ----------------------------------------------------------------------
-
       styleMap: [
         "p[style-name='Title'] => h1:fresh",
         "p[style-name='AltTitle'] => alttitle:fresh",
-        "p[style-name='Quote'] => note:fresh",
+        "p[style-name='Quote'] => note > p:fresh",
         "p[style-name='Hyperlink'] => a:fresh",
       ],
     };
-
     const { value: html } = await mammoth.convertToHtml(
       { path: inputDocxFile },
       mammothOptions
     );
 
-
-    console.log(html)
     const fullHtml = `
     <!DOCTYPE html>
     <html>
@@ -56,7 +51,6 @@ async function convertDocxToDita() {
     </body>
     </html>
 `;
-
     const $ = cheerio.load(fullHtml);
 
     $("table").each((index, element) => {
@@ -88,6 +82,7 @@ async function convertDocxToDita() {
         e.content.map((ele) => {
           if (ele.type === "section") {
             const hehe = removeNewlines(ele.content);
+
             footNoteList = removeNewlines(hehe[0].content);
           }
         });
@@ -111,9 +106,7 @@ async function convertDocxToDita() {
     // Main logic -- FootNote
     result.content.forEach((e) => {
       if (e.type === "body") {
-       
         e.content.forEach((ele) => {
-        
           if (ele.type === "p") {
             ele.content.forEach((g) => {
               if (g.content !== undefined) {
@@ -164,6 +157,7 @@ async function convertDocxToDita() {
         const modifiedDitaCode = codeRestructure(
           await JSONToHTML(characterToEntity(cleanedUpJson))
         );
+
         // let newPath = filePath.path
         //   .replace(/\\/g, "/")
         //   .split("/")
@@ -194,7 +188,7 @@ async function convertDocxToDita() {
         fs.writeFileSync(
           outputFilePath,
           xmlFormat(
-            `<?xml version="1.0" encoding="UTF-8"?>\n 
+            `<?xml version="1.0" encoding="UTF-8"?>\n
             <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
             ` + modifiedDitaCode,
             {
@@ -252,7 +246,7 @@ async function convertDocxToDita() {
     ) {
       if (typeof json === "object" && json !== null) {
         const type = json.type;
-        // console.log(JSON.stringify(json, null, 2));
+        // console.log(JSON.stringify(json, null, 1));
 
         let currentDivClass;
 
@@ -328,7 +322,7 @@ async function convertDocxToDita() {
             json.type = "topic";
             break;
           case "alttitle":
-            json.type = "alttitle";
+            json.type = "titlealts";
             break;
           case "h1":
             if (json.attributes === undefined) {
@@ -379,6 +373,7 @@ async function convertDocxToDita() {
             let attrtitleh3 = json.attributes;
             attrtitleh3["outputclass"] = "h3";
             break;
+
           case "h4":
             if (json.attributes === undefined) {
               json["attributes"] = {
@@ -628,8 +623,6 @@ async function convertDocxToDita() {
       // Convert the modified XML back to a string
       const modifiedXmlString = new XMLSerializer().serializeToString(xmlDoc);
 
-      // console.log(modifiedXmlString);
-
       return modifiedXmlString;
     }
 
@@ -637,26 +630,45 @@ async function convertDocxToDita() {
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlString, "text/xml");
       const titles = xmlDoc.getElementsByTagName("title");
-
+      const titlesAlts = xmlDoc.getElementsByTagName("titlealts");
       // Check if the first title is found within the body
       const topic = xmlDoc.getElementsByTagName("topic")[0];
+
       const title = titles[0];
+      const titlealts = titlesAlts[0];
+      if (
+        titlesAlts.length > 0 &&
+        titlesAlts[0].parentNode.tagName.toLowerCase() === "body"
+      ) {
+        xmlDoc.documentElement.removeChild(titlealts);
+        xmlDoc.documentElement.insertBefore(
+          titlealts,
+          xmlDoc.documentElement.firstChild
+        );
+      }
       if (
         titles.length > 0 &&
         titles[0].parentNode.tagName.toLowerCase() === "body"
       ) {
-        topic.insertBefore(title, topic.firstChild);
+        // topic.insertBefore(title, topic.firstChild);
+        // topic.insertBefore(titlealts, topic.firstChild);
+        title.removeAttribute("outputclass");
+        xmlDoc.documentElement.removeChild(title);
+
+        xmlDoc.documentElement.insertBefore(
+          title,
+          xmlDoc.documentElement.firstChild
+        );
       }
-      // Add the title as id to the topic tag
 
       if (titles.length > 0) {
         topic.setAttribute(
           "id",
-          title.childNodes[0]?.data
-            .replaceAll(/'/g, "")
-            .replaceAll(" ", "_")
-            .toLowerCase()
-            .substring(0, 7) +
+          title.childNodes[0]?.data +
+            // .replaceAll(/'/g, "")
+            // .replaceAll(" ", "_")
+            // .toLowerCase()
+            // .substring(0, 7) +
             "_" +
             generateRandomId(6)
         );
@@ -665,6 +677,82 @@ async function convertDocxToDita() {
       }
 
       return new XMLSerializer().serializeToString(xmlDoc);
+    }
+
+    // function moveTitleAboveBody(xmlString) {
+    //   const parser = new DOMParser();
+    //   const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+    //   const titles = xmlDoc.getElementsByTagName("title");
+    //   const titlesAlts = xmlDoc.getElementsByTagName("titlealts");
+    //   const body = xmlDoc.getElementsByTagName("body")[0];
+
+    //   if (titles.length > 0 && titles[0].parentNode.tagName.toLowerCase() === "body") {
+    //     // If title is found within the body, move it before titlealts if both are children of body
+    //     if (titlesAlts.length > 0) {
+    //       xmlDoc.insertBefore(titles[0], xmlDoc.documentElement.firstChild);
+    //     } else {
+    //       // If no titlealts, move title to the beginning of xmlDoc
+    //       xmlDoc.insertBefore(titles[0], xmlDoc.documentElement.firstChild);
+    //     }
+    //   }
+
+    //   // Generate unique ID for topic
+    //   const topic = xmlDoc.getElementsByTagName("topic")[0];
+    //   const title = titles[0];
+    //   if (title.length > 0) {
+    //     const titleData = title.childNodes[0]?.data || "";
+    //     topic.setAttribute(
+    //       "id",
+    //       titleData + "_" + generateRandomId(6)
+    //     );
+    //   } else {
+    //     topic?.setAttribute("id", generateRandomId(6));
+    //   }
+
+    //   return new XMLSerializer().serializeToString(xmlDoc);
+    // }
+
+    // function moveTitleAboveBody(xmlString) {
+    //   const parser = new DOMParser();
+    //   const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+    //   const titles = xmlDoc.getElementsByTagName("title");
+    //   const titlesAlts = xmlDoc.getElementsByTagName("titlealts");
+    //   const body = xmlDoc.getElementsByTagName("body")[0];
+
+    //   if (titles.length > 0 && titles[0].parentNode.tagName.toLowerCase() === "body") {
+    //     // If title is found within the body, move it before titlealts if both are children of body
+    //     if (titlesAlts.length > 0) {
+    //       body.insertBefore(titles[0], titlesAlts[0]);
+    //     } else {
+    //       // If no titlealts, move title to the beginning of body
+    //       body.insertBefore(titles[0], body.firstChild);
+    //     }
+    //   }
+
+    //   // Generate unique ID for topic
+    //   const topic = xmlDoc.getElementsByTagName("topic")[0];
+    //   const title = titles[0];
+    //   if (title) {
+    //     topic.setAttribute(
+    //       "id",
+    //       title.childNodes[0]?.data + "_" + generateRandomId(6)
+    //     );
+    //   } else {
+    //     topic?.setAttribute("id", generateRandomId(6));
+    //   }
+
+    //   return new XMLSerializer().serializeToString(xmlDoc);
+    // }
+
+    function generateRandomId(length) {
+      const characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      let result = "";
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(
+          Math.floor(Math.random() * characters.length)
+        );
+      }
+      return result;
     }
 
     function moveTgroupClosingTagBeforeTable(xmlString) {
