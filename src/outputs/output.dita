@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic id="main_bo_jie3as">
+<topics id="main_bo_kj1q9q">
   <title class="- topic/title ">Main Book Title</title>
   <titlealts>Alternate Title</titlealts>
   <body>
@@ -32,8 +32,30 @@
             <li>DocEditor</li>
             <li>DocPublisher</li>
             <li>DocStyler</li>
+            <li>DocMigration</li>
+            <li>DocManager</li>
+            <li>DocEditor</li>
+            <li>DocPublisher</li>
+            <li>DocStyler</li>
           </ul>
           <p><b>metR</b> comes with a default <b>DocManager</b> and a client administrator dashboard.</p>
+          <ul>
+            <li>DocMigration</li>
+            <li>DocManager</li>
+            <li>DocEditor</li>
+            <li>DocPublisher</li>
+            <li>DocStyler</li>
+            <li>DocMigration</li>
+            <li>DocManager</li>
+            <li>DocEditor</li>
+            <li>DocPublisher</li>
+            <li>DocStyler</li>
+            <li>DocMigration</li>
+            <li>DocManager</li>
+            <li>DocEditor</li>
+            <li>DocPublisher</li>
+            <li>DocStyler</li>
+          </ul>
           <p>The metR administrator dashboard facilitates the user to create, modify, and remove user roles for performing different tasks using different components.</p>
           <p>This online help will refer to the user with the metR admin role as the client administrator or the administrator.</p>
           <p>Let’s have the client administrator overview.</p>
@@ -164,4 +186,4 @@
       </body>
     </topic>
   </body>
-</topic>
+</topics>

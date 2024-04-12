@@ -5,7 +5,6 @@ const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
 const xmlFormat = require("xml-formatter");
 const cheerio = require("cheerio");
 const e = require("express");
-var convert = require('xml-js');
 // ----------------------------------------------------------
 const moveTitleAboveBody = require("./utils/moveTitleAboveBody.js");
 const moveTgroupClosingTagBeforeTable = require("./utils/moveTgroupClosingTagBeforeTable.js");
@@ -15,11 +14,73 @@ const removeUnwantedElements = require("./utils/removeUnwantedElements.js");
 const extractHTML = require("./utils/extractHTML.js");
 const addTopicTag = require("./utils/addTopicTag.js");
 const NestinTopicTag = require("./utils/nestingTopicTag.js")
-
+const seperateFileTopicTags = require("./utils/seperateFileTopicTag.js")
 // ------------------------------------------
-const inputDocxFile = path.join(__dirname, "./inputs/input1.docx");
+const inputDocxFile = path.join(__dirname, "./inputs/aaaTable.docx");
 const outputFilePath = "./outputs/output.dita";
+// async function checkFilesInFolder(folderPath) {
+//   try {
+//     const files = await fs.promises.readdir(folderPath);
 
+//     // Array to store promises returned by processing individual files
+//     const fileProcessingPromises = [];
+
+//     for (const file of files) {
+//       const filePath = path.join(folderPath, file);
+//       const stats = await fs.promises.stat(filePath);
+//       if (stats.isDirectory()) {
+//         // Recursively process directories
+//         fileProcessingPromises.push(checkFilesInFolder(filePath));
+//       } else if (stats.isFile()) {
+//         if (file.endsWith(".md") || file.endsWith(".mdx")) {
+//           // Process individual files
+//           fileProcessingPromises.push(
+//             mainMethod({ name: file, path: filePath }, stats, logData)
+//           );
+//         } else {
+//           logData.skippedFiles.push(filePath);
+//           // console.log("\x1b[33m%s\x1b[0m", `Skipped file "${filePath}"`);
+//         }
+//       }
+//     }
+
+//     // Wait for all file processing promises to resolve
+//     await Promise.all(fileProcessingPromises);
+
+//     // Write log data to files
+//     // for (let key in dataToFileMap) {
+//     //   if (logData.hasOwnProperty(key)) {
+//     //     fs.writeFileSync(
+//     //       dataToFileMap[key],
+//     //       Array.isArray(logData[key])
+//     //         ? logData[key].join("\n")
+//     //         : Object.keys(logData[key]).join("\n")
+//     //     );
+//     //   }
+//     // }
+
+//     fs.writeFileSync(
+//       `${outputDirName}/missingTagsLog.txt`,
+//       Object.keys(logData.missingTags).join("\n")
+//     );
+//     fs.writeFileSync(
+//       `${outputDirName}/handledTagsLog.txt`,
+//       Object.keys(logData.handledTags).join("\n")
+//     );
+//     fs.writeFileSync(
+//       `${outputDirName}/skippedFilesLog.txt`,
+//       logData.skippedFiles.join("\n")
+//     );
+//     fs.writeFileSync(
+//       `${outputDirName}/parsedFiles.txt`,
+//       logData.parsedFiles.join("\n")
+//     );
+//     // fs.writeFileSync(`${outputDirName}/task_handledandMissingTagsLog.txt`, Object.keys(logData.taskTags.task_handledTags).join("\n"));
+//   } catch (error) {
+//     console.error("Error reading directory:", error);
+//     throw error; // Propagate the error up
+//   }
+// }
 async function convertDocxToDita() {
   try {
     const mammothOptions = {
@@ -169,16 +230,16 @@ async function convertDocxToDita() {
 
         // let outputFilePath = "";
 
-        // if (newPath.endsWith(".md")) {
+        // if (newPath.endsWith(".doc")) {
         //   // Replace ".md" with ".dita"
         //   outputFilePath = `${outputDirName}${newPath.replace(
-        //     /\.md$/,
+        //     /\.doc$/,
         //     ".dita"
         //   )}`;
-        // } else if (newPath.endsWith(".mdx")) {
+        // } else if (newPath.endsWith(".docx")) {
         //   // Replace ".mdx" with ".dita"
         //   outputFilePath = `${outputDirName}${newPath.replace(
-        //     /\.mdx$/,
+        //     /\.docx$/,
         //     ".dita"
         //   )}`;
         // }
@@ -218,8 +279,9 @@ async function convertDocxToDita() {
       let newXmlString = moveTitleAboveBody(xmlString);
       let movingTgroupTop = moveTgroupClosingTagBeforeTable(newXmlString);
       let structureTopic = addTopicTag(movingTgroupTop);
-      let moveTilte = NestinTopicTag(structureTopic)
-      return moveTilte
+      let moveTitle = NestinTopicTag(structureTopic)
+       let  seperate=seperateFileTopicTags(moveTitle)
+      return seperate
     }
     function customDecode(htmlString) {
       // Define a regular expression to match specific entities you want to ignore
@@ -227,7 +289,7 @@ async function convertDocxToDita() {
 
       // Replace the matched entities with a temporary placeholder
       const ignoredString = htmlString.replace(ignoreRegex, (match, entity) => {
-        // Return a temporary placeholder for the ignored entity
+        // Return a temporary placeholder for the ignored entity    
         return `IGNORED_${entity}_IGNORED`;
       });
 
