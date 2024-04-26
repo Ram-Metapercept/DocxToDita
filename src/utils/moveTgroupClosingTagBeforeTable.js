@@ -174,16 +174,4 @@ function moveTgroupClosingTagBeforeTable(inputXML) {
     var modifiedXML = serializer.serializeToString(xmlDoc);
     return modifiedXML;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 module.exports = moveTgroupClosingTagBeforeTable;

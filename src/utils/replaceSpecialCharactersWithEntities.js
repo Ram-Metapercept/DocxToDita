@@ -13,7 +13,7 @@ function replaceSpecialCharactersWithEntities(text) {
     "@": "&#64;",
     // Add more mappings as needed
   };
-  // Use regex to replace each special character with its HTML entity
+  // Use regex to replace each special character with its HTML entity 
   return text.replace(/[&<>"'$%@#]/g, (match) => entitiesMap[match]);
 }
 

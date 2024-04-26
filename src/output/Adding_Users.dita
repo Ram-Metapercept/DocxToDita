@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="qS2ruAVU"><title class="- topic/title " outputclass="h1"><b><b>Adding Users</b></b></title><body><ol><li>Clicking Projects in the navigation panel will display all your assigned DITA projects in the Projects area.</li><li>Note: If your project is not visible on the page, use the file viewer to browse the projects or use the search box.</li><li>Click to view the user you assigned to the project along with the user’s role. You can also view the commit and release details.</li><li>Click to the right of the page to add a user to the project.</li><li>Select a user from the user dropdown menu.</li><li>Select the checkboxes to assign a project-based role to the user. Select DocManager for all the users. You can select multiple other roles from DocPublisher, DocEditor, and DocMigration.</li><li>Click Submit to view the page with a refreshed list of the newly added users. You’ll receive a success notification in the top right corner of the page. The user list displays the newly added user.</li></ol>
+    
+    
+</body></topic>

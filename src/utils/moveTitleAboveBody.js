@@ -40,10 +40,10 @@ function moveTitleAboveBody(xmlString) {
     topic.setAttribute(
       "id",
       title.childNodes[0]?.data 
-        .replaceAll(/'/g, "")
-        .replaceAll(" ", "_")
-        .toLowerCase()
-        .substring(0, 7)
+        // .replaceAll(/'/g, "")
+        // .replaceAll(" ", "_")
+        // .toLowerCase()
+        // .substring(0, 7)
         +
         "_" +
         generateRandomId(6)

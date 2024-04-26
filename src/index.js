@@ -5,6 +5,7 @@ const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
 const xmlFormat = require("xml-formatter");
 const cheerio = require("cheerio");
 const e = require("express");
+const addRandomIdToTopics = require("./utils/addRandomGeneratedId.js")
 // ----------------------------------------------------------
 const moveTitleAboveBody = require("./utils/moveTitleAboveBody.js");
 const moveTgroupClosingTagBeforeTable = require("./utils/moveTgroupClosingTagBeforeTable.js");
@@ -15,72 +16,36 @@ const extractHTML = require("./utils/extractHTML.js");
 const addTopicTag = require("./utils/addTopicTag.js");
 const NestinTopicTag = require("./utils/nestingTopicTag.js")
 const seperateFileTopicTags = require("./utils/seperateFileTopicTag.js")
+const createDitaMapHierarchy = require("./utils/ditaMapHierachy.js");
+const attachIdToTitle=require("./utils/attachedIdToTitle.js")
+// const taskFileMaker = require("./taskFileMaker.js");
+// const addTopicTag = require("../mardownIt-custom-plugin/addTopicTag__notInUse.js");
+// const SortTopicsTags = require("./SortTopicsTags.js");
+
+// const logFileGenerator = require("./logFileGenerator.js");
+// const outerBodyTagRemover = require("./outterBodyTagRemover.js");
+
+const fileSeparator = require("./utils/fileSeperator.js");
+const tagsValidator = require("./utils/tagValidator.js");
+const dtdConcept = require("./utils/dtdConcept.js");
+const dtdReference = require("./utils/dtdReference.js");
+const dtdTask = require("./utils/dtdTask.js");
+const { addData, getData, resetData } = require("./utils/LocalData.js");
+const outputDirName = "./output/";
 // ------------------------------------------
-const inputDocxFile = path.join(__dirname, "./inputs/aaaTable.docx");
-const outputFilePath = "./outputs/output.dita";
-// async function checkFilesInFolder(folderPath) {
-//   try {
-//     const files = await fs.promises.readdir(folderPath);
+const inputDocxFile = path.join(__dirname, "./inputs/input2.docx");
 
-//     // Array to store promises returned by processing individual files
-//     const fileProcessingPromises = [];
+const logData = {
+  missingTags: {},
+  handledTags: {},
+  taskTags: {
+    task_missingTags: {},
+    task_handledTags: {},
+  },
+  skippedFiles: [],
+  parsedFiles: [],
+};
 
-//     for (const file of files) {
-//       const filePath = path.join(folderPath, file);
-//       const stats = await fs.promises.stat(filePath);
-//       if (stats.isDirectory()) {
-//         // Recursively process directories
-//         fileProcessingPromises.push(checkFilesInFolder(filePath));
-//       } else if (stats.isFile()) {
-//         if (file.endsWith(".md") || file.endsWith(".mdx")) {
-//           // Process individual files
-//           fileProcessingPromises.push(
-//             mainMethod({ name: file, path: filePath }, stats, logData)
-//           );
-//         } else {
-//           logData.skippedFiles.push(filePath);
-//           // console.log("\x1b[33m%s\x1b[0m", `Skipped file "${filePath}"`);
-//         }
-//       }
-//     }
-
-//     // Wait for all file processing promises to resolve
-//     await Promise.all(fileProcessingPromises);
-
-//     // Write log data to files
-//     // for (let key in dataToFileMap) {
-//     //   if (logData.hasOwnProperty(key)) {
-//     //     fs.writeFileSync(
-//     //       dataToFileMap[key],
-//     //       Array.isArray(logData[key])
-//     //         ? logData[key].join("\n")
-//     //         : Object.keys(logData[key]).join("\n")
-//     //     );
-//     //   }
-//     // }
-
-//     fs.writeFileSync(
-//       `${outputDirName}/missingTagsLog.txt`,
-//       Object.keys(logData.missingTags).join("\n")
-//     );
-//     fs.writeFileSync(
-//       `${outputDirName}/handledTagsLog.txt`,
-//       Object.keys(logData.handledTags).join("\n")
-//     );
-//     fs.writeFileSync(
-//       `${outputDirName}/skippedFilesLog.txt`,
-//       logData.skippedFiles.join("\n")
-//     );
-//     fs.writeFileSync(
-//       `${outputDirName}/parsedFiles.txt`,
-//       logData.parsedFiles.join("\n")
-//     );
-//     // fs.writeFileSync(`${outputDirName}/task_handledandMissingTagsLog.txt`, Object.keys(logData.taskTags.task_handledTags).join("\n"));
-//   } catch (error) {
-//     console.error("Error reading directory:", error);
-//     throw error; // Propagate the error up
-//   }
-// }
 async function convertDocxToDita() {
   try {
     const mammothOptions = {
@@ -222,155 +187,125 @@ async function convertDocxToDita() {
           await JSONToHTML(characterToEntity(cleanedUpJson))
         );
 
-        // let newPath = filePath.path
-        //   .replace(/\\/g, "/")
-        //   .split("/")
-        //   .slice(1)
-        //   .join("/");
+        function capitalizeFirstWord(str) {
+          return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+        const abc=attachIdToTitle(modifiedDitaCode)
+        // ------------------------------
+        let topicWise = fileSeparator(abc);
 
-        // let outputFilePath = "";
+        let newPath = inputDocxFile
+          .replace(/\\/g, "/")
+          .split("/")
+          .slice(1)
+          .join("/");
 
-        // if (newPath.endsWith(".doc")) {
-        //   // Replace ".md" with ".dita"
-        //   outputFilePath = `${outputDirName}${newPath.replace(
-        //     /\.doc$/,
-        //     ".dita"
-        //   )}`;
-        // } else if (newPath.endsWith(".docx")) {
-        //   // Replace ".mdx" with ".dita"
-        //   outputFilePath = `${outputDirName}${newPath.replace(
-        //     /\.docx$/,
-        //     ".dita"
-        //   )}`;
-        // }
 
-        // const outputDir = path.dirname(outputFilePath);
 
-        // createDirectory(outputDirName);
-        // createDirectory(outputDir);
+        const fileInfo = {}
+        fileInfo.nestObj = []
+        topicWise.topics.map((tc, index) => {
+          let dtdType = "topic";
 
-        fs.writeFileSync(
-          outputFilePath,
-          xmlFormat(
-            `<?xml version="1.0" encoding="UTF-8"?>\n
-            <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-            ` + modifiedDitaCode,
-            {
-              indentation: "  ",
-              filter: (node) => node.type !== "Comment",
-              collapseContent: true,
-              lineSeparator: "\n",
+          // Validate tags
+          tc.content = tagsValidator(tc.content);
+
+          // Check if the content is a concept
+          let result = dtdConcept(tc.content);
+
+          if (result.boolValue) {
+            dtdType = "concept";
+            tc.content = result.content;
+          } else if (result.boolValue === false) {
+            let result2 = dtdReference(tc.content);
+            if (result2.boolValue) {
+              dtdType = "reference";
+              tc.content = result2.content;
+            } else if (result2.boolValue === false) {
+              let temp = dtdTask(tc.content);
+              if (temp.boolValue) {
+                dtdType = "task";
+
+                tc.content = temp.content;
+              }
             }
-          ),
-          "utf-8"
-        );
+          }
 
-        console.log(
-          "\x1b[35m%s\x1b[0m",
-          "Successfully parsed =>",
-          outputFilePath
-        );
+          let fileNameOnTitle =
+            tc.title
+              .replaceAll(" ", "_")
+              .replaceAll("?", "")
+              .replaceAll(".", "") + ".docx";
+
+          let outputFilePath = "";
+
+          let actualPath =
+            newPath.split("/").slice(0, -1).join("/") +
+            "/" +
+            fileNameOnTitle;
+
+          if (actualPath.endsWith(".doc")) {
+            // Replace ".doc" with ".dita"
+            outputFilePath = `${outputDirName}${fileNameOnTitle.replace(
+              /\.doc$/,
+              ".dita"
+            )}`;
+          } else if (actualPath.endsWith(".docx")) {
+            // Replace ".docx" with ".dita"
+
+            outputFilePath = `${outputDirName}${fileNameOnTitle.replace(
+              /\.docx$/,
+              ".dita"
+            )}`;
+
+          }
+
+          const outputDir = path.dirname(outputFilePath);
+
+
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+          }
+
+          fileInfo.nestObj.push({
+            level: tc.level,
+            path: outputFilePath,
+            child: []
+          })
+          if (tc.level !== undefined) {
+            fs.writeFileSync(
+              outputFilePath,
+              `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(
+                dtdType
+              )}//EN" "${dtdType}.dtd">
+${tc.content}`,
+              {
+                encoding: 'utf-8', // Specify UTF-8 encoding
+              }
+            );
+          }
+          logData.parsedFiles.push(outputFilePath);
+          addData(fileInfo)
+        });
+        let fetchData = getData()
+        DitaMapMaker(fetchData, topicWise.topics[0].title)
       } catch (error) {
         console.log(error);
       }
     });
 
     function codeRestructure(xmlString) {
+
       let newXmlString = moveTitleAboveBody(xmlString);
       let movingTgroupTop = moveTgroupClosingTagBeforeTable(newXmlString);
       let structureTopic = addTopicTag(movingTgroupTop);
-      let moveTitle = NestinTopicTag(structureTopic)
-       let  seperate=seperateFileTopicTags(moveTitle)
-      return seperate
-    }
-    function customDecode(htmlString) {
-      // Define a regular expression to match specific entities you want to ignore
-      const ignoreRegex = /&(amp);/g; // Add more entities to ignore if needed
+      let m = addRandomIdToTopics(structureTopic)
+      let moveTitle = NestinTopicTag(m)
 
-      // Replace the matched entities with a temporary placeholder
-      const ignoredString = htmlString.replace(ignoreRegex, (match, entity) => {
-        // Return a temporary placeholder for the ignored entity    
-        return `IGNORED_${entity}_IGNORED`;
-      });
-
-      // Decode the rest of the HTML entities
-      const decodedString = he.decode(ignoredString);
-
-      // Replace the temporary placeholders back to their original form
-      const finalDecodedString = decodedString.replace(
-        /IGNORED_(.*?)_IGNORED/g,
-        (match, entity) => {
-          // Return the matched entity as is, without decoding
-          return `&${entity};`;
-        }
-      );
-
-      return finalDecodedString;
+      return moveTitle
     }
 
-    // function jsonToCode(json) {
-    //   JSONToHTML(json).then(async (res) => {
-    //     try {
-    //       // Replace <> and </> tags
-    //       const cleanedUpContent = res.replace(/<\/*>/g, "");
-    //       const cleanedUpJson = await HTMLToJSON(cleanedUpContent, false);
-    //       //logic for wrapping plain text inside paragraph tags
-    //       if (Array.isArray(cleanedUpJson.content)) {
-    //         cleanedUpJson.content.forEach((ele) => {
-    //           if (ele.type === "body" && Array.isArray(ele.content)) {
-    //             ele.content.forEach((bodyEle, indx) => {
-    //               if (
-    //                 typeof bodyEle === "string" &&
-    //                 bodyEle.trim() !== "\n" &&
-    //                 bodyEle.trim() !== "\n\n" &&
-    //                 bodyEle.trim() !== ""
-    //               ) {
-    //                 ele.content[indx] = { type: "p", content: [bodyEle] };
-    //               }
-    //             });
-    //           }
-    //         });
-    //       }
-
-    //       const modifiedDitaCode = codeRestructure(
-    //         await JSONToHTML(characterToEntity(cleanedUpJson))
-    //       );
-
-    //       fs.writeFileSync(
-    //         `${outputDirName}hello.dita`,
-    //         xmlFormat(
-    //           `<?xml version="1.0" encoding="UTF-8"?>\n
-    //           <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-    //           ` + modifiedDitaCode,
-    //           {
-    //             indentation: "  ",
-    //             filter: (node) => node.type !== "Comment",
-    //             collapseContent: true,
-    //             lineSeparator: "\n",
-    //           }
-    //         ),
-    //         "utf-8"
-    //       );
-    //     } catch (error) {
-    //       console.log(error);
-    //     }
-    //   });
-    // }
-    // Function to create directory recursively
-
-    function createDirectory(directory) {
-      if (!fs.existsSync(directory)) {
-        createDirectory(path.dirname(directory)); // Recursively create parent directories
-        fs.mkdirSync(directory); // Create the directory
-      }
-    }
-
-    // console.log(result)
-    // Apply style mappings
-    let ditaHtml = html;
-
-    // Save HTML as DITA
-    // await saveHtmlAsDita(ditaHtml, outputFilePath);
 
     console.log("DOCX converted to DITA successfully.");
   } catch (error) {
@@ -379,3 +314,77 @@ async function convertDocxToDita() {
 }
 
 convertDocxToDita();
+
+function DitaMapMaker(fetchData, title) {
+  let nestedFiles = {};
+
+  try {
+
+    fetchData[0].nestObj.forEach((ff) => {
+
+      const level = parseInt(ff.level);
+
+      let parent = nestedFiles;
+
+      for (let i = 1; i < level; i++) {
+        if (!parent.child || parent.child.length === 0) {
+          console.error(
+            "Error occurred: Parent has no children.",
+            parent
+          );
+          throw new Error("Parent has no children.");
+        }
+        parent = parent.child[parent.child.length - 1];
+      }
+      if (!parent.child) parent.child = [];
+      parent.child.push(ff);
+    });
+
+  } catch (error) {
+    console.error("Error occurred:", error.message);
+  }
+
+  function createXMLStructure(data) {
+    let xmlStructure = "";
+
+    data.child?.forEach((item) => {
+      if (item.level !== undefined) {
+        xmlStructure += `<topicref href="${item.path
+          .split("/")
+          .filter((_, index) => index !== 1)
+          .join("/")}" `;
+
+        if (
+          item.child &&
+          Array.isArray(item.child) &&
+          item.child.length > 0
+        ) {
+          xmlStructure +=
+            ">\n" +
+            createXMLStructure({ child: item.child }) +
+            "</topicref>\n";
+        } else {
+          xmlStructure += "/>\n";
+        }
+      }
+    }
+    );
+
+    return xmlStructure;
+  }
+  function generateRandomId() {
+    // Generates a random alphanumeric string of length 8
+    return Math.random().toString(36).substr(2, 8);
+  }
+  let mapId = generateRandomId();
+
+  const xmlString = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+ <map id="${mapId}" xml:lang="en-us">\n    <title>${title}</title>\n ${createXMLStructure(nestedFiles)}</map>`;
+
+  fs.writeFileSync(`./output/${title.replace(/ /g, "_")}.ditamap`, xmlString);
+  console.log("XML structure created successfully!");
+
+  resetData()
+
+}
