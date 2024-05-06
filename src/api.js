@@ -1,267 +1,126 @@
-const express = require("express");
-const fileUpload = require("express-fileupload");
-const fs = require("fs");
-const path = require("path");
-const cors = require("cors");
-const shell = require("shelljs");
-// const checkFilesInFolder = require("./utils/index.js");
+const express = require('express');
+const fileUpload = require('express-fileupload');
+const convertDocxToDita = require("./index")
 const app = express();
-const PORT = process.env.PORT || 3000;
-const AdmZip = require("adm-zip");
-const archiver = require("archiver");
-const fileValidator = require("./utils/fileValidator");
-const isValidDirectory = require("./utils/ValidDirectory");
+const PORT = 8000;
+const path = require("path");
+const fs = require('fs');
+const outputFile = path.join(__dirname, "./output");
+const shell = require("shelljs");
+const cors = require('cors');
+app.use(fileUpload());
+app.use(cors())
+let inputDocxFile = path.join(__dirname, `./inputs/`);
+// Route to handle file upload
+app.post('/api/upload', async (req, res) => {
 
-app.use(cors());
-
-app.use(fileUpload()); // Add file upload middleware
-
-let inputFolderDir = "input";
-const outputFolderPath = "./output";
-
-let ditaMapEntries = [];
-
-// API route to handle file upload and processing
-app.post("/api/upload", async (req, res) => {
-  try {
-    // Ensure the 'input' directory exists
-    const inputDir = path.join(__dirname, inputFolderDir);
-    console.log(inputDir);
-    if (!fs.existsSync(inputDir)) {
-      shell.mkdir("-p", inputDir);
-    } else if (fs.existsSync(inputDir)) {
-      shell.rm("-rf", inputDir);
-      shell.mkdir("-p", inputDir);
+  if (!req.files || Object.keys(req.files).length === 0) {
+    return res.status(400).send('No files were uploaded.');
+  }
+  const docxFile = req.files.file;
+  // Validate file type
+  if (docxFile.mimetype !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return res.status(400).send('Invalid file type. Please upload a DOCX file.');
+  }
+  // Move the uploaded file to a folder 
+  docxFile.mv(`inputs/${docxFile.name}`, (err) => {
+    if (err) {
+      return res.status(500).send(err);
     }
+    // Delete previously uploaded files
+    fs.readdir('inputs', (err, files) => {
+      if (err) {
+        return res.status(500).send(err);
+      }
 
-    // Ensure the 'output' directory exists
-    if (!fs.existsSync(outputFolderPath)) {
-      fs.mkdirSync(outputFolderPath, { recursive: true });
-    }
-
-    // Move the uploaded zip file to the input directory
-    await zipFile.mv(path.join(inputDir, zipFile.name));
-
-    // Extract the zip file
-    const inputFolder = path.join(inputDir, zipFile.name);
-    const zip = new AdmZip(inputFolder);
-    zip.extractAllTo(inputFolderDir, /*overwrite*/ true);
-
-    // Validate files asynchronously
-    fileValidator(inputFolderDir)
-      .then((counts) => {
-        if (counts.mdCounter === 0) {
-          // If no markdown files found, delete the input directory
-          shell.rm("-rf", inputDir);
-          return res.status(400).json({
-            message: "No markdown files found in zip file.",
-            status: 400,
-          });
-          
-        } else {
-          // If markdown files found, send success response
-          return res.status(200).json({
-            message: "Zip file uploaded and extracted successfully...",
-            status: 200,
+      files.forEach(file => {
+        // Skip the currently uploaded file
+        if (file !== docxFile.name) {
+          fs.unlink(`inputs/${file}`, err => {
+            if (err) {
+              return res.status(500).send(err);
+            }
           });
         }
-
-      })
-      .catch((error) => {
-        // Handle any errors that might occur during validation
-        console.error("Error validating files:", error);
-        return res.status(500).json({
-          message: "Internal server error during file validation",
-          status: 500,
-        });
-      })
-      .finally(() => {
-        // Remove the zip file after extraction and validation
-        fs.unlinkSync(inputFolder);
       });
-  } catch (error) {
-    // Handle any errors that might occur during the file upload process
-    console.error("Error handling file upload:", error);
-    res.status(500).json({ message: "Internal server error", status: 500 });
-  }
+    });
+    res.status(200).send({ message: `File "${docxFile.name}" uploaded successfully.` });
+
+  });
 });
 
-app.get("/api/markdowntodita", async (req, res) => {
+app.get('/api/convertDocxToDita', async (req, res) => {
+
+  const StateManager = (() => {
+    let state = [];
+    return {
+      getState: () => state,
+      setState: (newState) => {
+        state = newState;
+      },
+    };
+  })();
+
   try {
-    // Process the files in the input directory
-    const isValid = await isValidDirectory(inputFolderDir);
+  fs.readdir(inputDocxFile, async (err, files) => {
+      if (err) {
+        console.error('Error reading folder:', err);
+        return;
+      }
+      // Iterate through each file in the folder
+      const newState = [];
 
-    if (!isValid) {
-      return res
-        .status(404)
-        .json({ message: "Please upload zip file first!", status: 404 });
-    } else if (isValid) {
-      // await checkFilesInFolder(inputFolderDir);
+  // Iterate through each file in the folder
+  for (const file of files) {
+    // Construct the full path to the file
+    const filePath = path.join(inputDocxFile, file);
 
-      checkFilesInFolder(inputFolderDir, ditaMapEntries)
-        .then(() => {
-          // Check if the output folder exists
-
-          const folderExists = fs.existsSync(outputFolderPath);
-          if (!folderExists) {
-            return res
-              .status(404)
-              .json({ message: "Output folder not found", status: 404 });
-          }
-
-          // Create a unique identifier for the download link
-          const downloadId = Math.random().toString(36).substring(7);
-          const downloadLink = `http://localhost:${PORT}/api/download/${downloadId}`;
-
-          const downloadPath = path.join(__dirname, "downloads", downloadId);
-          fs.mkdirSync(downloadPath, { recursive: true });
-          const outputZipPath = path.join(downloadPath, "output.zip");
-
-          // Create a zip file
-          const output = fs.createWriteStream(outputZipPath);
-          const archive = archiver("zip", {
-            zlib: { level: 9 }, // Set compression level
-          });
-
-          // Pipe the archive data to the output file
-          archive.pipe(output);
-
-          // Add the output folder to the archive
-          archive.directory(outputFolderPath, false);
-
-          // Finalize the archive
-          archive.finalize();
-
-          // Cleanup the uploaded zip file
-          cleanupUploadedZip(inputFolderDir);
-
-          // Send response indicating successful processing and the download link
-
-          res.status(200).json({
-            message: "Files converted successfully.",
-            downloadLink,
-            status: 200,
-          });
-
-          //console.log(JSON.stringify(ditaMapEntries, null, 2));
-          // console.log(ditaMapEntries);
-
-          function cloneArray(array) {
-            return JSON.parse(JSON.stringify(array));
-          }
-
-          function moveChildren(arrayOfObjects) {
-            const hierarchy = {};
-
-            // Construct hierarchy
-            arrayOfObjects.forEach((folder) => {
-              const folderName = folder.folder;
-              folder.children.forEach((child) => {
-                const level = parseInt(child.level);
-                if (!hierarchy[folderName]) hierarchy[folderName] = {};
-                if (!hierarchy[folderName][level])
-                  hierarchy[folderName][level] = [];
-                hierarchy[folderName][level].push(child);
-              });
-            });
-
-            // Reconstruct array
-            const structuredArray = [];
-            for (const folderName in hierarchy) {
-              const folder = {
-                folder: folderName,
-                children: [],
-              };
-              for (let level in hierarchy[folderName]) {
-                hierarchy[folderName][level].forEach((child) => {
-                  if (level === "1") {
-                    folder.children.push(child);
-                  } else {
-                    const parentLevel = parseInt(level) - 1;
-                    const parentLevelChildren =
-                      hierarchy[folderName][parentLevel];
-                    if (parentLevelChildren) {
-                      parentLevelChildren.forEach((parentChild) => {
-                        if (!parentChild.child) parentChild.child = [];
-                        parentChild.child.push(child);
-                      });
-                    } else {
-                      // Create parent level child if it doesn't exist
-                      const parentLevelChild = {
-                        path: child.path
-                          .split("/")
-                          .slice(0, parentLevel)
-                          .join("/"),
-                        level: `${parentLevel}`,
-                        child: [child],
-                      };
-                      hierarchy[folderName][parentLevel] = [parentLevelChild];
-                    }
-                  }
-                });
-              }
-              structuredArray.push(folder);
-            }
-            return structuredArray;
-          }
-
-          let duplicateArr = cloneArray(ditaMapEntries);
-          let modifiedArr = moveChildren(duplicateArr);
-
-          //console.log(JSON.stringify(modifiedArr, null, 2));
-
-          const includedPaths = new Set();
-
-          function buildXML(data) {
-            let xml = "";
-
-            //  data="${item.level ? item.level : "1"}"
-
-            data.forEach((item) => {
-              const path =
-                item.children && item.children.length > 0
-                  ? item.children[0].path
-                  : item.path;
-              if (!includedPaths.has(path)) {
-                xml += `<topicref href="${path
-                  .split("/")
-                  .filter((_, index) => index !== 1)
-                  .join("/")}" data="${item.level ? item.level : "1"}"`;
-                if (item.children && item.children.length > 1) {
-                  xml += ">\n";
-                  includedPaths.add(path);
-                  xml += buildXML(item.children);
-                  xml += `</topicref>\n`;
-                } else {
-                  xml += "/>\n";
-                  includedPaths.add(path);
-                }
-              }
-            });
-
-            return xml;
-          }
-
-          const xmlString = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
- <map>\n${buildXML(ditaMapEntries)}</map>`;
-
-          fs.writeFileSync(`${outputFolderPath}/test.ditamap`, xmlString);
-          console.log("XML structure created successfully!");
-
-          ditaMapEntries = [];
-        })
-        .catch((error) => {
-          console.error("Error processing files:", error);
-        });
+    // Call the function and store the output in the state
+    const output = await convertDocxToDita(filePath);
+    newState.push(output);
+  }
+  StateManager.setState(newState);
+    var downloadLink=StateManager.getState()
+    const outputFolderPath = outputFile;
+    if (!outputFolderPath) {
+      return res.status(400).send('Folder path is required.');
     }
+    res.status(200).json({
+      message: 'Files converted successfully.',
+      downloadLink: downloadLink,
+      status: 200,
+    });
+   
+  })
+  fs.readdir('output', (err, files) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    files.forEach(file => {
+      const folderPath = path.join(__dirname, 'output', file);
+      cleanupUploadedZip(folderPath);
+    });
+  });
+
+  fs.readdir('downloads', (err, files) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    files.forEach(file => {
+      const filePath = path.join('downloads', file);
+
+      cleanupUploadedZip(filePath); 
+    
+    });
+ 
+  });
   } catch (error) {
-    console.error("Error processing files:", error);
-    res.status(500).json({ message: "Internal server error", status: 500 });
+    // Send an error response
+    console.error("Error converting DOCX to DITA:", error);
+    res.status(500).send("Internal server error.");
   }
 });
 
-// API route to download the processed files
 app.get("/api/download/:downloadId", (req, res) => {
   const downloadId = req.params.downloadId;
   const downloadPath = path.join(
@@ -273,10 +132,9 @@ app.get("/api/download/:downloadId", (req, res) => {
 
   // Check if the file exists
   if (fs.existsSync(downloadPath)) {
-    // Set response headers for downloading the zip file
+    // Set response headers for downloading the zip file 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", "attachment; filename=output.zip");
-
     // Pipe the zip file to the response
     const fileStream = fs.createReadStream(downloadPath);
     fileStream.pipe(res);
@@ -284,17 +142,20 @@ app.get("/api/download/:downloadId", (req, res) => {
     res.status(404).json({ message: "File not found", status: 404 });
   }
 });
-
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-function cleanupUploadedZip(inputFolderDir) {
+function cleanupUploadedZip(FolderDir) {
   try {
-    // Remove the directory recursively
-    // shell.rm("-rf", inputFolderDir);
-
-    console.log("Input folder removed");
+    // Check if the directory exists before attempting to remove it
+    if (fs.existsSync(FolderDir)) {
+      // Remove the directory recursively
+      shell.rm("-rf", FolderDir);
+      console.log("Successfully cleaned up uploaded zip file:", FolderDir);
+    } else {
+      console.log("Directory does not exist:", FolderDir);
+    }
   } catch (error) {
     console.error("Error cleaning up uploaded zip file:", error);
   }

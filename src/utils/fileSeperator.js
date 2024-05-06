@@ -1,50 +1,4 @@
-// function fileSeparator(xmlString) {
-
-//     const topics = [];
-//     let index = xmlString.lastIndexOf("<topic id=");
-  
-//     while (index !== -1) {
-//       const endTopicIndex =
-//         xmlString.indexOf("</topic>", index) + "</topic>".length;
-//       let topicContent = xmlString.substring(index, endTopicIndex);
-  
-//       topics.push({
-//         content: topicContent,
-//         title: extractTitle(topicContent).title,
-//         level: extractTitle(topicContent).outputclass.split("h")[1],
-//       });
-  
-//       xmlString =
-//         xmlString.substring(0, index) + xmlString.substring(endTopicIndex);
-//       index = xmlString.lastIndexOf("<topic id=");
-//     }
-//     const ditaMapContent = generateDITAMap(topics);
-
-//     return topics;
-//   }
-  
-  // function extractTitle(topic) {
-  //   const titleStartIndex = topic.indexOf("<title");
-  //   const titleEndIndex = topic.indexOf("</title>", titleStartIndex);
-  //   const titleContent = topic.substring(
-  //     titleStartIndex,
-  //     titleEndIndex + "</title>".length
-  //   );
-  
-  //   // Extracting the title text
-  //   const titleText = titleContent.replace(/<\/?[^>]+(>|$)/g, "");
-  
-  //   // Extracting the outputclass attribute value
-  //   const outputclassMatch = titleContent.match(/outputclass="([^"]+)"/);
-  //   const outputclass = outputclassMatch ? outputclassMatch[1] : "";
-   
-  //   return { title: titleText.trim(), outputclass: outputclass };
-  // }
-  
-
-// module.exports = fileSeparator;
-
-
+const generateRandomId=require("./generateRandomId")
 
 function generateDITAMap(topics, ditaMapFilename) {
   const randomId = generateRandomId(); 
@@ -61,9 +15,23 @@ function generateDITAMap(topics, ditaMapFilename) {
 }
 
 // Function to generate a random ID
-function generateRandomId() {
-  return Math.random().toString(36).substring(2); // Generates a random alphanumeric string
-}
+// function generateRandomId(length = 8) {
+//   const letters = 'abcdefghijklmnopqrstuvwxyz';
+//   const digits = '0123456789';
+//   let result = '';
+  
+//   // Start the ID with a random letter
+//   result += letters.charAt(Math.floor(Math.random() * letters.length));
+  
+//   // Append the rest of the ID with a combination of letters and digits
+//   for (let i = 1; i < length; i++) {
+//       const characters = i % 2 === 0 ? letters : digits;
+//       result += characters.charAt(Math.floor(Math.random() * characters.length));
+//   }
+  
+//   return result;
+// }
+
 
 function fileSeparator(xmlString) {
 

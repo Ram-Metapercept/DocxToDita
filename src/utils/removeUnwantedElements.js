@@ -262,6 +262,21 @@ function removeUnwantedElements(
         attr["href"] = attr["src"];
         delete attr["src"];
         break;
+      // case "img":
+      //   json.type = "fig";
+      //   json.children = [{
+      //       type: "image",
+      //       attributes: {
+      //           href: json.attributes.src,
+      //           alt: json.attributes.alt
+      //       }
+      //   }];
+      //   delete json.attributes.src;
+      //   delete json.attributes.alt;
+      //   break;
+    
+
+
       case "blockquote":
         json.type = "lq";
         break;

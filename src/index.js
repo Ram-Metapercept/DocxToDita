@@ -1,40 +1,30 @@
+
 const path = require("path");
 const mammoth = require("mammoth");
 const fs = require("fs");
 const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
-const xmlFormat = require("xml-formatter");
 const cheerio = require("cheerio");
-const e = require("express");
 const addRandomIdToTopics = require("./utils/addRandomGeneratedId.js")
-// ----------------------------------------------------------
 const moveTitleAboveBody = require("./utils/moveTitleAboveBody.js");
 const moveTgroupClosingTagBeforeTable = require("./utils/moveTgroupClosingTagBeforeTable.js");
-const createDirectory = require("./utils/createDirectory.js");
 const characterToEntity = require("./utils/characterToEntity.js");
 const removeUnwantedElements = require("./utils/removeUnwantedElements.js");
 const extractHTML = require("./utils/extractHTML.js");
 const addTopicTag = require("./utils/addTopicTag.js");
 const NestinTopicTag = require("./utils/nestingTopicTag.js")
-const seperateFileTopicTags = require("./utils/seperateFileTopicTag.js")
-const createDitaMapHierarchy = require("./utils/ditaMapHierachy.js");
-const attachIdToTitle=require("./utils/attachedIdToTitle.js")
-// const taskFileMaker = require("./taskFileMaker.js");
-// const addTopicTag = require("../mardownIt-custom-plugin/addTopicTag__notInUse.js");
-// const SortTopicsTags = require("./SortTopicsTags.js");
-
-// const logFileGenerator = require("./logFileGenerator.js");
-// const outerBodyTagRemover = require("./outterBodyTagRemover.js");
-
+const attachIdToTitle = require("./utils/attachedIdToTitle.js")
+const { converBase64ToImage } = require('convert-base64-to-image');
 const fileSeparator = require("./utils/fileSeperator.js");
 const tagsValidator = require("./utils/tagValidator.js");
 const dtdConcept = require("./utils/dtdConcept.js");
 const dtdReference = require("./utils/dtdReference.js");
 const dtdTask = require("./utils/dtdTask.js");
-const { addData, getData, resetData } = require("./utils/LocalData.js");
+const generateRandomId = require("./utils/generateRandomId.js");
+const addIdTOFigTag = require("./utils/addIdtoFigTag.js")
+const { addData, getData, resetData, setIsBodyEmpty, getIsBodyEmpty } = require("./utils/LocalData.js");
+const archiver = require('archiver');
 const outputDirName = "./output/";
-// ------------------------------------------
-const inputDocxFile = path.join(__dirname, "./inputs/input2.docx");
-
+const PORT = 8000;
 const logData = {
   missingTags: {},
   handledTags: {},
@@ -46,27 +36,26 @@ const logData = {
   parsedFiles: [],
 };
 
-async function convertDocxToDita() {
+async function convertDocxToDita(filePath) {
+  const outputId = Math.random().toString(36).substring(7);
+
+  const OutputPath = path.join(outputDirName, outputId);
+
   try {
     const mammothOptions = {
-      convertImage: mammoth.images.inline((element, inlineOptions) => {
-        let a = fs.readFile(element).then((buffer) => {
-          const base64Image = buffer.toString("base64");
-          return { src: `data:${element.contentType};base64,${base64Image}` };
-        });
-        return a;
-      }),
-
       // ----------------------------------------------------------------------
       styleMap: [
         "p[style-name='Title'] => h1:fresh",
         "p[style-name='AltTitle'] => alttitle:fresh",
         "p[style-name='Quote'] => note > p:fresh",
         "p[style-name='Hyperlink'] => a:fresh",
+        "p[style-name='Figure'] => fig:fresh"
       ],
     };
+
+
     const { value: html } = await mammoth.convertToHtml(
-      { path: inputDocxFile },
+      { path: filePath },
       mammothOptions
     );
 
@@ -82,7 +71,6 @@ async function convertDocxToDita() {
     </body>
     </html>
 `;
-
     const $ = cheerio.load(fullHtml);
 
     $("table").each((index, element) => {
@@ -92,9 +80,18 @@ async function convertDocxToDita() {
       ).length;
       $(element).prepend(`<tgroup cols="${numCols}" />`);
     });
+    $('img').each((index, element) => {
+      const src = $(element).attr('src');
+      // let alt = $(element).attr('alt');
+      // let alt1 = alt.replace(/ /g, '_');
+      const pathToSaveImage = `${OutputPath}/media/image${index}.png`;
+      const pathToSaveImagewithMedia = `media/image${index}.png`;
+      const path = converBase64ToImage(src, pathToSaveImage)
+      $(element).attr('src', pathToSaveImagewithMedia);
+    });
+
 
     const modifiedHtml = $.html();
-
     const contentWithHmtlAsRootElement = extractHTML(modifiedHtml);
 
     let footNoteList = [];
@@ -190,16 +187,29 @@ async function convertDocxToDita() {
         function capitalizeFirstWord(str) {
           return str.charAt(0).toUpperCase() + str.slice(1);
         }
-        const abc=attachIdToTitle(modifiedDitaCode)
+        const abc = attachIdToTitle(modifiedDitaCode)
         // ------------------------------
         let topicWise = fileSeparator(abc);
 
-        let newPath = inputDocxFile
+        let newPath = filePath
           .replace(/\\/g, "/")
           .split("/")
           .slice(1)
           .join("/");
-
+        var topicContent = topicWise.topics[0].content;
+        var bodyElement = extractBodyElement(topicContent);
+        var isBodyEmpty = bodyElement.trim() === '';
+        setIsBodyEmpty(isBodyEmpty)
+        function extractBodyElement(htmlContent) {
+          var start = htmlContent.indexOf('<body>');
+          var end = htmlContent.lastIndexOf('</body>');
+          if (start === -1 || end === -1) {
+            // Body tags not found
+            return '';
+          }
+          var bodyContent = htmlContent.substring(start + 6, end);
+          return bodyContent;
+        }
 
 
         const fileInfo = {}
@@ -246,23 +256,20 @@ async function convertDocxToDita() {
 
           if (actualPath.endsWith(".doc")) {
             // Replace ".doc" with ".dita"
-            outputFilePath = `${outputDirName}${fileNameOnTitle.replace(
+            outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
               /\.doc$/,
               ".dita"
             )}`;
           } else if (actualPath.endsWith(".docx")) {
             // Replace ".docx" with ".dita"
 
-            outputFilePath = `${outputDirName}${fileNameOnTitle.replace(
+            outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
               /\.docx$/,
               ".dita"
             )}`;
 
           }
-
           const outputDir = path.dirname(outputFilePath);
-
-
           if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
           }
@@ -272,6 +279,7 @@ async function convertDocxToDita() {
             path: outputFilePath,
             child: []
           })
+
           if (tc.level !== undefined) {
             fs.writeFileSync(
               outputFilePath,
@@ -284,38 +292,68 @@ ${tc.content}`,
                 encoding: 'utf-8', // Specify UTF-8 encoding
               }
             );
+          } else if (!isBodyEmpty) {
+            fs.writeFileSync(
+              outputFilePath,
+              `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(
+                dtdType
+              )}//EN" "${dtdType}.dtd">
+${tc.content}`,
+              {
+                encoding: 'utf-8', // Specify UTF-8 encoding
+              }
+            );
           }
+
           logData.parsedFiles.push(outputFilePath);
           addData(fileInfo)
         });
         let fetchData = getData()
-        DitaMapMaker(fetchData, topicWise.topics[0].title)
+        DitaMapMaker(fetchData, topicWise.topics[0].title, OutputPath)
       } catch (error) {
         console.log(error);
       }
     });
 
-    function codeRestructure(xmlString) {
+    const downloadId = Math.random().toString(36).substring(7);
 
+    const downloadLink = `http://localhost:${PORT}/api/download/${downloadId}`;
+
+    const downloadPath = path.join(__dirname, "downloads", downloadId);
+    fs.mkdirSync(downloadPath, { recursive: true });
+    const outputZipPath = path.join(downloadPath, "output.zip");
+    // Create zip file
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Set compression level
+    });
+
+    const output = fs.createWriteStream(outputZipPath);
+    archive.pipe(output);
+    archive.directory(OutputPath, false);
+    archive.finalize();
+
+
+
+
+    function codeRestructure(xmlString) {
       let newXmlString = moveTitleAboveBody(xmlString);
       let movingTgroupTop = moveTgroupClosingTagBeforeTable(newXmlString);
       let structureTopic = addTopicTag(movingTgroupTop);
-      let m = addRandomIdToTopics(structureTopic)
-      let moveTitle = NestinTopicTag(m)
-
-      return moveTitle
+      let addingRandomIdToTopic = addRandomIdToTopics(structureTopic)
+      let moveTitle = NestinTopicTag(addingRandomIdToTopic)
+      let addIDtoFig = addIdTOFigTag(moveTitle)
+      return addIDtoFig
     }
-
-
     console.log("DOCX converted to DITA successfully.");
+    return downloadLink
   } catch (error) {
     console.error("Error converting DOCX to DITA:", error);
   }
 }
 
-convertDocxToDita();
-
-function DitaMapMaker(fetchData, title) {
+module.exports = convertDocxToDita
+function DitaMapMaker(fetchData, title, OutputPath) {
   let nestedFiles = {};
 
   try {
@@ -345,14 +383,33 @@ function DitaMapMaker(fetchData, title) {
   }
 
   function createXMLStructure(data) {
+    let a = getIsBodyEmpty()
+    function getLastPathSegment(path) {
+      const parts = path.split(/[\\/]/);
+      return parts[parts.length - 1];
+  }
     let xmlStructure = "";
 
-    data.child?.forEach((item) => {
+    data.child?.forEach((item, index) => {
+
       if (item.level !== undefined) {
-        xmlStructure += `<topicref href="${item.path
-          .split("/")
-          .filter((_, index) => index !== 1)
-          .join("/")}" `;
+     let topicPathInDita=getLastPathSegment(item.path);
+        xmlStructure += `<topicref href="${topicPathInDita}" `;
+        if (
+          item.child &&
+          Array.isArray(item.child) &&
+          item.child.length > 0
+        ) {
+          xmlStructure +=
+            ">\n" +
+            createXMLStructure({ child: item.child }) +
+            "</topicref>\n";
+        } else {
+          xmlStructure += "/>\n";
+        }
+      } else if (!a) {
+        let topicPathInDita=getLastPathSegment(item.path);
+        xmlStructure += `<topicref href="${topicPathInDita}" `;
 
         if (
           item.child &&
@@ -368,21 +425,19 @@ function DitaMapMaker(fetchData, title) {
         }
       }
     }
+
     );
 
     return xmlStructure;
   }
-  function generateRandomId() {
-    // Generates a random alphanumeric string of length 8
-    return Math.random().toString(36).substr(2, 8);
-  }
+
   let mapId = generateRandomId();
 
   const xmlString = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
  <map id="${mapId}" xml:lang="en-us">\n    <title>${title}</title>\n ${createXMLStructure(nestedFiles)}</map>`;
 
-  fs.writeFileSync(`./output/${title.replace(/ /g, "_")}.ditamap`, xmlString);
+  fs.writeFileSync(`${OutputPath}/${title.replace(/ /g, "_")}.ditamap`, xmlString);
   console.log("XML structure created successfully!");
 
   resetData()

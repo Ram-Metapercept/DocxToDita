@@ -1,3 +1,4 @@
+
 const { DOMParser, XMLSerializer } = require('xmldom');
 
 function attachIdToTitle(xmlString) {
@@ -13,6 +14,10 @@ function attachIdToTitle(xmlString) {
             const id = xref.getAttribute('id');
             titleElement.setAttribute('id', id);
             xref.removeAttribute('id');
+            
+            // Remove xref tag and its attributes
+            const parent = xref.parentNode;
+            parent.removeChild(xref);
         }
     });
 
