@@ -18,7 +18,7 @@ function removeUnwantedElements(
 ) {
   if (typeof json === "object" && json !== null) {
     const type = json.type;
-    // console.log(JSON.stringify(json, null, 1));
+
     let currentDivClass;
 
     // replace or remove switch case based on schema and custom condition as per project requirements
@@ -190,8 +190,6 @@ function removeUnwantedElements(
         if (!hasKeyattrh6) {
           json["attributes"] = {};
         }
-        // let attrtitleh6 = json.attributes;
-        // attrtitleh6["outputclass"] = "h6";
         break;
       case "a":
         json.type = "xref";
@@ -213,25 +211,12 @@ function removeUnwantedElements(
       case "col":
         json.type = "colspec";
         break;
+      case "s":
+        json.type = "strike";
+        break;
       case "tr":
         json.type = "row";
         break;
-
-      // case "td":
-      //   delete json.attributes?.style;
-
-      //   json.type = "entry";
-      //   break;
-      // case "td":
-      //   delete json.attributes?.style;
-      //   if (json.attributes && json.attributes.colspan) {
-      //       json.attributes.namest = "c2";
-      //       json.attributes.nameend = "c3";
-      //   }
-      //   delete json.attributes?.colspan;
-      //   json.type = "entry";
-
-      //   break;
 
       case "td":
         delete json.attributes?.style;
@@ -239,16 +224,19 @@ function removeUnwantedElements(
         const rowspanValue = json.attributes?.rowspan;
         if (colspanValue && colspanValue !== "1") {
           const currentIndex = getColumnIndex(json);
+
           const nameStart = `c${currentIndex}`;
           const nameEnd = `c${currentIndex + parseInt(colspanValue) - 1}`;
+
           json.attributes.namest = nameStart;
           json.attributes.nameend = nameEnd;
+
           delete json.attributes.colspan; // Remove the colspan attribute
         }
         if (rowspanValue && rowspanValue === "1") {
           json.attributes.moreRow = "1";
-          delete json.attributes.rowspan; 
-      }
+          delete json.attributes.rowspan;
+        }
         json.type = "entry";
         break;
 
@@ -262,21 +250,6 @@ function removeUnwantedElements(
         attr["href"] = attr["src"];
         delete attr["src"];
         break;
-      // case "img":
-      //   json.type = "fig";
-      //   json.children = [{
-      //       type: "image",
-      //       attributes: {
-      //           href: json.attributes.src,
-      //           alt: json.attributes.alt
-      //       }
-      //   }];
-      //   delete json.attributes.src;
-      //   delete json.attributes.alt;
-      //   break;
-    
-
-
       case "blockquote":
         json.type = "lq";
         break;

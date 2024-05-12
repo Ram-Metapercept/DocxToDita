@@ -21,8 +21,12 @@ const dtdReference = require("./utils/dtdReference.js");
 const dtdTask = require("./utils/dtdTask.js");
 const generateRandomId = require("./utils/generateRandomId.js");
 const addIdTOFigTag = require("./utils/addIdtoFigTag.js")
-const { addData, getData, resetData, setIsBodyEmpty, getIsBodyEmpty } = require("./utils/LocalData.js");
+const { addData, getData, resetData, setIsBodyEmpty, getIsBodyEmpty, addDataColumn, getDataColumn } = require("./utils/LocalData.js");
 const archiver = require('archiver');
+const removeBoldTags = require("./utils/RemoveBoldTagFromTitle.js");
+const replaceOlWIthFn = require("./utils/replaceOlWithFn.js")
+const removeXref = require("./utils/removeRowEntry.js")
+const readFolder=require("./utils/extractIds.js")
 const outputDirName = "./output/";
 const PORT = 8000;
 const logData = {
@@ -75,11 +79,11 @@ async function convertDocxToDita(filePath) {
 
     $("table").each((index, element) => {
       const numRows = $(element).find("tr").length;
-      const numCols = $(element).find(
-        "tr:first-child th, tr:first-child td"
-      ).length;
-      $(element).prepend(`<tgroup cols="${numCols}" />`);
+      const numCols = $(element).find("tr:nth-child(2) th, tr:nth-child(2) td").length;
+      // const numCols = $(element).find("th").length;
+      $(element).prepend(`<colgroup cols="${numCols}"  />`);
     });
+
     $('img').each((index, element) => {
       const src = $(element).attr('src');
       // let alt = $(element).attr('alt');
@@ -89,7 +93,6 @@ async function convertDocxToDita(filePath) {
       const path = converBase64ToImage(src, pathToSaveImage)
       $(element).attr('src', pathToSaveImagewithMedia);
     });
-
 
     const modifiedHtml = $.html();
     const contentWithHmtlAsRootElement = extractHTML(modifiedHtml);
@@ -108,7 +111,6 @@ async function convertDocxToDita(filePath) {
         e.content.map((ele) => {
           if (ele.type === "section") {
             const hehe = removeNewlines(ele.content);
-
             footNoteList = removeNewlines(hehe[0].content);
           }
         });
@@ -124,6 +126,7 @@ async function convertDocxToDita(filePath) {
     result = characterToEntity(result);
 
     // Preprocess footNoteList into a Map for efficient lookup
+
     const footNoteMap = new Map();
     footNoteList.forEach((obj) => {
       footNoteMap.set(obj.attributes.id, obj.content[0].content[0]);
@@ -155,6 +158,7 @@ async function convertDocxToDita(filePath) {
       }
     });
 
+
     JSONToHTML(result).then(async (res) => {
       try {
         // Replace <> and </> tags
@@ -184,12 +188,14 @@ async function convertDocxToDita(filePath) {
           await JSONToHTML(characterToEntity(cleanedUpJson))
         );
 
+
         function capitalizeFirstWord(str) {
           return str.charAt(0).toUpperCase() + str.slice(1);
         }
         const abc = attachIdToTitle(modifiedDitaCode)
-        // ------------------------------
-        let topicWise = fileSeparator(abc);
+        let boldTagdeletion = removeBoldTags(abc)
+
+        let topicWise = fileSeparator(boldTagdeletion);
 
         let newPath = filePath
           .replace(/\\/g, "/")
@@ -210,8 +216,6 @@ async function convertDocxToDita(filePath) {
           var bodyContent = htmlContent.substring(start + 6, end);
           return bodyContent;
         }
-
-
         const fileInfo = {}
         fileInfo.nestObj = []
         topicWise.topics.map((tc, index) => {
@@ -245,7 +249,7 @@ async function convertDocxToDita(filePath) {
             tc.title
               .replaceAll(" ", "_")
               .replaceAll("?", "")
-              .replaceAll(".", "") + ".docx";
+              .replaceAll(".", "").replace(/[^\w\s]/gi, '') + ".docx";
 
           let outputFilePath = "";
 
@@ -334,17 +338,20 @@ ${tc.content}`,
     archive.finalize();
 
 
-
-
     function codeRestructure(xmlString) {
       let newXmlString = moveTitleAboveBody(xmlString);
+
       let movingTgroupTop = moveTgroupClosingTagBeforeTable(newXmlString);
-      let structureTopic = addTopicTag(movingTgroupTop);
-      let addingRandomIdToTopic = addRandomIdToTopics(structureTopic)
-      let moveTitle = NestinTopicTag(addingRandomIdToTopic)
-      let addIDtoFig = addIdTOFigTag(moveTitle)
-      return addIDtoFig
+      let removexrefFromEntry = removeXref(movingTgroupTop);
+      let structureTopic = addTopicTag(removexrefFromEntry);
+
+      let addingRandomIdToTopic = addRandomIdToTopics(structureTopic);
+      let moveTitle = NestinTopicTag(addingRandomIdToTopic);
+      let addIDtoFig = addIdTOFigTag(moveTitle);
+      let footnoterelatedOlLI = replaceOlWIthFn(addIDtoFig)
+      return footnoterelatedOlLI
     }
+
     console.log("DOCX converted to DITA successfully.");
     return downloadLink
   } catch (error) {
@@ -387,13 +394,15 @@ function DitaMapMaker(fetchData, title, OutputPath) {
     function getLastPathSegment(path) {
       const parts = path.split(/[\\/]/);
       return parts[parts.length - 1];
-  }
+    }
     let xmlStructure = "";
 
     data.child?.forEach((item, index) => {
 
       if (item.level !== undefined) {
-     let topicPathInDita=getLastPathSegment(item.path);
+
+        let topicPathInDita = getLastPathSegment(item.path);
+
         xmlStructure += `<topicref href="${topicPathInDita}" `;
         if (
           item.child &&
@@ -408,7 +417,7 @@ function DitaMapMaker(fetchData, title, OutputPath) {
           xmlStructure += "/>\n";
         }
       } else if (!a) {
-        let topicPathInDita=getLastPathSegment(item.path);
+        let topicPathInDita = getLastPathSegment(item.path);
         xmlStructure += `<topicref href="${topicPathInDita}" `;
 
         if (

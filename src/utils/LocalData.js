@@ -1,9 +1,6 @@
 let globalState = {
     data: [],
   };
-  // let globalState1 = {
-  //   data: [],
-  // };
   
   function getData() {
    
@@ -47,7 +44,14 @@ const getIsBodyEmpty = () => {
     return isBodyEmpty;
 };
 
+let arr=[]
 
+function addDataColumn(column){
+  arr.push(column)
+}
 
+function getDataColumn(){
+  return arr
+}
 
-  module.exports = {addIDFolder,getData, addData, resetData,setIsBodyEmpty,getIsBodyEmpty,getIdFolder}
+module.exports = {addDataColumn,getDataColumn,addIDFolder,getData, addData, resetData,setIsBodyEmpty,getIsBodyEmpty,getIdFolder}

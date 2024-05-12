@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+ <map id="P7880695" xml:lang="en-us">
+    <title>Demonstration of DOCX support in calibre</title>
+ <topicref href="Demonstration_of_DOCX_support_in_calibre.dita" />
+<topicref href="Text_Formatting.dita" >
+<topicref href="Inline_formatting.dita" />
+<topicref href="Fun_with_fonts.dita" />
+<topicref href="Paragraph_level_formatting.dita" />
+</topicref>
+<topicref href="Tables.dita" />
+<topicref href="Structural_Elements.dita" >
+<topicref href="Footnotes_amp_Endnotes.dita" />
+<topicref href="Dropcaps.dita" />
+<topicref href="Links.dita" />
+<topicref href="Table_of_Contents.dita" />
+</topicref>
+<topicref href="Images.dita" />
+<topicref href="Lists.dita" >
+<topicref href="Bulleted_List.dita" />
+<topicref href="Numbered_List.dita" />
+<topicref href="Multilevel_Lists.dita" />
+<topicref href="Continued_Lists.dita" />
+</topicref>
+</map>

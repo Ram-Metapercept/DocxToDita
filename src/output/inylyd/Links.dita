@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="b6834415"><title class="- topic/title " outputclass="h2" id="_Toc359077860">Links</title><body><p>Two kinds of links are possible, those that refer to an external website and those that refer to locations inside the document itself. Both are supported by calibre. For example, here is a link pointing to the <xref href="http://calibre-ebook.com/download" scope="external" format="html">calibre download page</xref>. Then we have a link that points back to the section on <xref href="#_Paragraph_level_formatting">paragraph level formatting</xref> in this document.</p></body></topic>
