@@ -1,5 +1,6 @@
 const { schema } = require("../schema");
 const validateURL = require("./validateURL");
+const { addJsonData, addXrefJsonData, addContentData } = require('./LocalData');
 function getColumnIndex(json) {
   let currentIndex = 1;
   let currentEntry = json;
@@ -194,8 +195,21 @@ function removeUnwantedElements(
       case "a":
         json.type = "xref";
         let attra = json.attributes;
+        // if(attra?.href){
+        //   const url = attra.href;
+        //   const urlRegex = /^(http:\/\/|https:\/\/)/i;
+        //   if (!url.match(urlRegex)) {
+        //     addXrefJsonData(url?.replace(/^#/, ''))
+        //   }
+        // }
+  
+
+        if (attra.target == "_blank") {
+          delete attra["target"];
+        }
         if (attra["data-linktype"]) attra["scope"] = attra["data-linktype"];
         else if (validateURL(json.attributes.href)) {
+         
           attra["scope"] = "external";
           attra["format"] = "html";
         }

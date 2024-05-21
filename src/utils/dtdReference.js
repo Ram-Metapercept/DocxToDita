@@ -29,14 +29,14 @@ function isFirstTableInBody(content) {
 
       if (rowCount >= 7) {
         const serializer = new XMLSerializer();
-        cosnt = modifiedContent = serializer
+        const modifiedContent = serializer
           .serializeToString(xmlDoc)
           .replace(/<topic/g, "<reference")
           .replace(/<\/topic>/g, "</reference>")
           .replace(/<body>/, "<refbody>")
           .replace(/<\/body>/, "</refbody>");
-          let  modifiedContent=wrapInSection(modifiedContent)
-        return { content: modifiedContent, boolValue: true };
+          let  modifiedContentWrappedIntoSection=wrapInSection(modifiedContent)
+        return { content: modifiedContentWrappedIntoSection, boolValue: true };
       }
 
     }

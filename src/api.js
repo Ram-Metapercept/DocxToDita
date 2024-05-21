@@ -12,42 +12,87 @@ app.use(fileUpload());
 app.use(cors())
 let inputDocxFile = path.join(__dirname, `./inputs/`);
 // Route to handle file upload
-app.post('/api/upload', async (req, res) => {
+// app.post('/api/upload', async (req, res) => {
 
-  if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send('No files were uploaded.');
-  }
-  const docxFile = req.files.file;
-  // Validate file type
-  if (docxFile.mimetype !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    return res.status(400).send('Invalid file type. Please upload a DOCX file.');
-  }
-  // Move the uploaded file to a folder 
-  docxFile.mv(`inputs/${docxFile.name}`, (err) => {
-    if (err) {
-      return res.status(500).send(err);
+//   if (!req.files || Object.keys(req.files).length === 0) {
+//     return res.status(400).send('No files were uploaded.');
+//   }
+//   const docxFile = req.files.file;
+//   // Validate file type
+//   if (docxFile.mimetype !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+//     return res.status(400).send('Invalid file type. Please upload a DOCX file.');
+//   }
+//   // Move the uploaded file to a folder 
+//   docxFile.mv(`inputs/${docxFile.name}`, (err) => {
+//     if (err) {
+//       return res.status(500).send(err);
+//     }
+//     // Delete previously uploaded files
+//     fs.readdir('inputs', (err, files) => {
+//       if (err) {
+//         return res.status(500).send(err);
+//       }
+
+//       files.forEach(file => {
+//         // Skip the currently uploaded file
+//         if (file !== docxFile.name) {
+//           fs.unlink(`inputs/${file}`, err => {
+//             if (err) {
+//               return res.status(500).send(err);
+//             }
+//           });
+//         }
+//       });
+//     });
+//     res.status(200).send({ message: `File "${docxFile.name}" uploaded successfully.` });
+
+//   });
+// });
+
+app.post('/api/upload', async (req, res) => {
+  try {
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).send({ error: 'No files were uploaded.' });
     }
-    // Delete previously uploaded files
-    fs.readdir('inputs', (err, files) => {
+
+    const docxFile = req.files.file;
+
+    // Validate file type
+    if (docxFile.mimetype !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      return res.status(400).send({ error: 'Invalid file type. Please upload a DOCX file.' });
+    }
+
+    // Move the uploaded file to the 'inputs' folder
+    const filePath = `inputs/${docxFile.name}`;
+    docxFile.mv(filePath, (err) => {
       if (err) {
-        return res.status(500).send(err);
+        return res.status(500).send({ error: 'Error while moving the file.', details: err.message });
       }
 
-      files.forEach(file => {
-        // Skip the currently uploaded file
-        if (file !== docxFile.name) {
-          fs.unlink(`inputs/${file}`, err => {
-            if (err) {
-              return res.status(500).send(err);
-            }
-          });
+      // Delete previously uploaded files, except the current one
+      fs.readdir('inputs', (err, files) => {
+        if (err) {
+          return res.status(500).send({ error: 'Error reading the directory.', details: err.message });
         }
+
+        files.forEach(file => {
+          if (file !== docxFile.name) {
+            fs.unlink(`inputs/${file}`, err => {
+              if (err) {
+                console.error(`Error deleting file ${file}: ${err.message}`);
+              }
+            });
+          }
+        });
+
+        res.status(200).send({ message: `"${docxFile.name}" File uploaded successfully.` });
       });
     });
-    res.status(200).send({ message: `File "${docxFile.name}" uploaded successfully.` });
-
-  });
+  } catch (err) {
+    res.status(500).send({ error: 'An unexpected error occurred.', details: err.message });
+  }
 });
+
 
 app.get('/api/convertDocxToDita', async (req, res) => {
 
@@ -116,7 +161,7 @@ app.get('/api/convertDocxToDita', async (req, res) => {
   });
   } catch (error) {
     // Send an error response
-    console.error("Error converting DOCX to DITA:", error);
+    console.error("Error converting DOCX to DITA:", error.message);
     res.status(500).send("Internal server error.");
   }
 });

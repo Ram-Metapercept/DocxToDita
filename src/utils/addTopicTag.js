@@ -1,5 +1,5 @@
 const { DOMParser, XMLSerializer } = require("xmldom");
-var convert = require('xml-js');
+
 // ------------------------------------------
 function addTopicTag(xmlString) {
   const parser = new DOMParser();

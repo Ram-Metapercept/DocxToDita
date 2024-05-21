@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
-<topic id="r1115902"><title class="- topic/title " outputclass="h2" id="_Toc359077866">Multi-level Lists</title><body><ol><li>One<ol><li>Two<ol><li>Three</li><li>Four with a very long line to demonstrate that the hanging indent for the list is working correctly.</li><li>Five</li></ol></li></ol></li><li>Six</li></ol><p>A Multi-level list with bullets:</p><ul><li>One<ul><li>Two<ul><li>This bullet uses an image as the bullet item<ul><li>Four</li></ul></li></ul></li></ul></li><li>Five</li></ul></body></topic>

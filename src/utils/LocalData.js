@@ -1,57 +1,90 @@
 let globalState = {
-    data: [],
-  };
-  
-  function getData() {
-   
-    return globalState.data;
-  }
+  data: [],
+};
+let jsonState = {
+  data: [],
+};
 
-  
-  function addData(newData) {
-  
-    globalState.data.push(newData);
-  }
-  var globalState1=[]
-  function addIDFolder(newIDFolder) {
-  
-  globalState1.push(newIDFolder);
-  
+let XrefHrefState = {
+  data: [],
+};
+let ContentState = {
+  data: "",
+};
+
+function getContentData() {
+  return ContentState.data;
 }
-function getIdFolder() {
-  if (globalState1 === undefined) {
-      console.log("globalState1 is undefined");
-      return null; // or any other default value you want to return
-  }
-  console.log(globalState1, "dhah");
-  return globalState1;
+
+function addContentData(newData) {
+  ContentState.data += newData;
 }
-  function resetData() {
-    globalState.data = [];
-  }
-  
+
+
+
+let ModifiedContentState = {
+  data: "",
+};
+
+function getModifiedContentData() {
+  return ModifiedContentState.data;
+}
+
+function addModifiedContentData(newData) {
+  ModifiedContentState.data += newData;
+}
+function getData() {
+
+  return globalState.data;
+}
+
+
+function addData(newData) {
+
+  globalState.data.push(newData);
+}
+
+
+function addJsonData(newData) {
+
+  jsonState?.data?.push(newData);
+
+}
+function getJsonData() {
+  return jsonState.data;
+}
+
+
+
+
+function addXrefJsonData(newData) {
+  XrefHrefState?.data?.push(newData);
+}
+function getXrefJsonData() {
+  return XrefHrefState.data;
+}
+
+
+function resetData() {
+  globalState.data = [];
+}
+
 
 // Initialize the variable
 let isBodyEmpty = false;
 
 // Function to set the value
 const setIsBodyEmpty = (value) => {
-    isBodyEmpty = value;
+  isBodyEmpty = value;
 };
 
 // Function to get the value
 const getIsBodyEmpty = () => {
-    return isBodyEmpty;
+  return isBodyEmpty;
 };
 
-let arr=[]
 
-function addDataColumn(column){
-  arr.push(column)
-}
 
-function getDataColumn(){
-  return arr
-}
 
-module.exports = {addDataColumn,getDataColumn,addIDFolder,getData, addData, resetData,setIsBodyEmpty,getIsBodyEmpty,getIdFolder}
+
+module.exports = {getModifiedContentData,addModifiedContentData,addContentData,getContentData,addXrefJsonData,getXrefJsonData, addJsonData, getJsonData, getData, addData, resetData, setIsBodyEmpty, getIsBodyEmpty }

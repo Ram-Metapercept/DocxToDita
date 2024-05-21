@@ -12,14 +12,14 @@ function dtdTask(content) {
   let node = body.firstChild;
   let count = 0;
   while (node && count < 3) {
-    if (node.nodeType === 1) {
-      childElements.push(node.nodeName);
+    if (node?.nodeType === 1) {
+      childElements.push(node?.nodeName);
       count++;
     }
     node = node.nextSibling;
   }
 
-  if (childElements.length >= 3) {
+  if (childElements?.length >= 3) {
     if (
       childElements[0] === "p" &&
       childElements[1] === "p" &&
@@ -80,15 +80,15 @@ function wrapPostReq(xmlContent) {
   const steps = xmlDoc.getElementsByTagName("steps")[0];
   const postReq = xmlDoc.createElement("postreq");
 
-  let nextNode = steps.nextSibling;
+  let nextNode = steps?.nextSibling;
   while (nextNode) {
     const currentNode = nextNode;
    
-    nextNode = currentNode.nextSibling;
-    postReq.appendChild(currentNode);
+    nextNode = currentNode?.nextSibling;
+    postReq?.appendChild(currentNode);
   }
 
-  steps.parentNode.insertBefore(postReq, steps.nextSibling);
+  steps?.parentNode?.insertBefore(postReq, steps?.nextSibling);
 
   const serializer = new XMLSerializer();
   const modifiedXmlContent = serializer.serializeToString(xmlDoc);
