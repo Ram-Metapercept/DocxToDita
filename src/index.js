@@ -1,9 +1,10 @@
 
 const path = require("path");
-const mammoth = require("mammoth");
-const fs = require("fs");
+const mammoth = require("mammoth")
+const fs = require("fs")
 const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
 const cheerio = require("cheerio");
+const abc=require("./utils/abc.js")
 const addRandomIdToTopics = require("./utils/addRandomGeneratedId.js")
 const moveTitleAboveBody = require("./utils/moveTitleAboveBody.js");
 const moveTgroupClosingTagBeforeTable = require("./utils/moveTgroupClosingTagBeforeTable.js");
@@ -41,41 +42,6 @@ const logData = {
   skippedFiles: [],
   parsedFiles: [],
 };
-function listConverter(paragraph, listStack = []) {
-  if (paragraph.styleName === "List Paragraph") {
-      const depth = paragraph.level;
-      const listType = paragraph.numbering && paragraph.numbering.isOrdered ? "ol" : "ul";
-      const listItem = {
-          type: "element",
-          tag: "li",
-          children: paragraph.children
-      };
-
-      if (depth > listStack.length) {
-          // Start a new nested list
-          const newList = {
-              type: "element",
-              tag: listType,
-              children: [listItem]
-          };
-          listStack.push(newList);
-      } else if (depth < listStack.length) {
-          // Close the current nested lists
-          while (depth < listStack.length) {
-              const closedList = listStack.pop();
-              if (listStack.length > 0) {
-                  listStack[listStack.length - 1].children.push(closedList);
-              }
-          }
-          listStack[listStack.length - 1].children.push(listItem);
-      } else {
-          // Same level, add to current list
-          listStack[listStack.length - 1].children.push(listItem);
-      }
-      return listStack.length === 1 ? listStack[0] : listStack;
-  }
-  return paragraph;
-}
 
 async function convertDocxToDita(filePath) {
   const outputId = Math.random().toString(36).substring(7);
@@ -83,27 +49,160 @@ async function convertDocxToDita(filePath) {
   const OutputPath = path.join(outputDirName, outputId);
 
   try {
+    // const mammothOptions = {
+    //   // ----------------------------------------------------------------------
+    //   styleMap: [
+    //     "p[style-name='Title'] => h1:fresh",
+    //     "p[style-name='AltTitle'] => alttitle:fresh",
+    //     "p[style-name='Quote'] => note > p:fresh",
+    //     "p[style-name='Hyperlink'] => a:fresh",
+    //     "p[style-name='Figure'] => fig:fresh",
+    //     "p[style-name='OrderedList'] => ol > li:fresh",       
+    //     "p[style-name='OrderedListitem2'] => ol > ol > li:fresh", 
+
+    //   ],
+    // };
+
+
+    // const { value: html } = await mammoth.convertToHtml(
+    //   { path: filePath },
+    //   mammothOptions
+    // );
+
+    const transformElement = (element) => {
+  
+      if (element.type === "paragraph" && element.styleId) {
+          let type;
+          switch (element.styleId) {
+              case "NoteStyle":
+                  type = "note";
+                  break;
+              case "CautionStyle":
+                  type = "caution";
+                  break;
+              case "DangerStyle":
+                  type = "danger";
+                  break;
+          }
+          // console.log(type);
+          if (type) {
+            console.log(element.children);
+              return {
+                  type: "element",
+                  tag: "note",
+                  children: element.children,
+                  attributes: {
+                
+                      type: type
+                  }
+              };
+          }
+      }
+      return element;
+  };
+  
+  
     const mammothOptions = {
-      // ----------------------------------------------------------------------
       styleMap: [
         "p[style-name='Title'] => h1:fresh",
-        "p[style-name='AltTitle'] => alttitle:fresh",
-        "p[style-name='Quote'] => note > p:fresh",
+        "p[style-name='AltTitle'] => h2:fresh",
+        "p[style-name='Quote'] => blockquote:fresh",
         "p[style-name='Hyperlink'] => a:fresh",
-        "p[style-name='Figure'] => fig:fresh"
-        // "p[style-name='OrderedListitem2'] => ol:fresh"
+        "p[style-name='Figure'] => figure:fresh",
+
+        // 'p.NoteStyle => note:fresh',
+        // 'p.CautionStyle => note:fresh',
+        // 'p.DangerStyle => note:fresh',
+
+        'p.NoteStyle => note:fresh',
+        'p.CautionStyle => note:fresh',
+        'p.DangerStyle => note:fresh',
+        // 'p.OrderedList => ol> li> ol.OrderedList > li.ordered-list-item:fresh',
+        // 'p.OrderedListitem2 =>ol.OrderedList > li.ordered-list-item>ol>li> ol.OrderedListitem2 > li.ordered-list-item-2:fresh',
+
+        // 'p.OrderedListitem3 => ol.OrderedList > li.ordered-list-item > ol.OrderedListitem2 > li.ordered-list-item-2 > ol.OrderedListitem3 > li.ordered-list-item-3:fresh',
+
+        // 'p.OrderedListitem4 => ol.OrderedList > li.ordered-list-item > ol.OrderedListitem2 > li.ordered-list-item-2 > ol.OrderedListitem3 > li.ordered-list-item-3 > ol.OrderedListitem4 > li.ordered-list-item-4 :fresh',
+
+        // "p.OrderedList => ol > li:fresh",
+        // "p.OrderedListitem2 => ol > li > ol > li:fresh",
+        // "p.OrderedListitem3 => ol > li > ol > li > li > ol > li:fresh",
+        // "p.OrderedListitem4 => ol > li > ol > li > ol > li > ol > li:fresh"
+
+        "p.OrderedList => li[id^=_Toc] > ol > li:fresh",
+        "p.OrderedListitem2 =>  ol > li > ol > li:fresh",
+         "p.Orderedlistitem3 =>  ol > li > ol > li > ol > li:fresh",
+         "p.OrderListitem4 =>  ol > li > ol > li > ol > li > ol > li:fresh",
+         "p.OrderListitem5 =>  ol > li > ol > li > ol > li > ol > li > ol > li:fresh",
+         "p.OrderListitem6 =>  ol > li > ol > li > ol > li > ol > li > ol > li > ol > li:fresh",
+        //  "p:has(image) => li > img"
+        // //  "r[isImage] => div > img",
+        // //  "p:has(> img) => li > div",
+        //  "p.FigureStyle => fig:fresh"
      
+        // 'p.OrderedList => li[id^=_Toc] > ol > li:fresh',
+        // 'p.OrderedListitem2 => ol > li > ol > li:fresh',
+        // 'p.OrderedListitem3 => ol > li > ol > li > ol > li:fresh',
+        // 'p.OrderListitem4 => ol > li > ol > li > ol > li > ol > li:fresh',
+        // 'p.OrderListitem5 => ol > li > ol > li > ol > li > ol > li > ol > li:fresh',
+        // 'p.OrderListitem6 => ol > li > ol > li > ol > li > ol > li > ol > li > ol > li:fresh',
+        
+       
+        
+      
+        
+        // 'p.OrderedList => ol > li> ol.OrderedList > li.ordered-list-item:fresh',
+        // 'p.OrderedListItem2 =>ol > li> ol.OrderedList > ol>li.ordered-list-item >ol>li> ol.OrderedListItem2 > li.ordered-list-item-2:fresh',
+
+        // 'p.OrderedListItem3 => ol >li> ol.OrderedList > li.ordered-list-item > ol.OrderedListItem2 > li.ordered-list-item-2 > ol> li> ol.OrderedListItem3 > li.ordered-list-item-3:fresh',
+        // 'p.OrderedListItem4 => ol>li>ol.OrderedList > li.ordered-list-item > ol.OrderedListItem2 > li.ordered-list-item-2 > ol.OrderedListItem3 > li.ordered-list-item-3 > ol.OrderedListItem4 > li.ordered-list-item-4:fresh'
+        
+    
+
+
+
+
+
+
+        // 'p.OrderedList => ol.ordered-list > li.ordered-list-item:fresh',
+
+        // 'p.OrderedListitem2 => ol.ordered-list > li.ordered-list-item> ol.ordered-list-item2 > li.ordered-list-item-2:fresh',
+
+        // 'p.OrderedListitem3 => ol.ordered-list > li.ordered-list-item > ol.ordered-list-item2 > li.ordered-list-item-2 > ol.OrderedListitem3 > li.ordered-list-item-3:fresh',
+
+        // 'p.OrderedListitem4 => ol.ordered-list > li.ordered-list-item > ol.ordered-list-item2 > li.ordered-list-item-2 > ol.ordered-list-item3 > li.ordered-list-item-3 > ol.ordered-list-item4 > li.ordered-list-item-4 :fresh',
+
+
+
+
+        // 'p.OrderedList => ol.ordered-list > li.ordered-list-item:fresh',
+        // 'p.OrderedListItem2 => ol.ordered-list > li.ordered-list-item > ol.ordered-list > li.ordered-list-item-2:fresh',
+        // 'p.OrderedListItem3 => ol.ordered-list > li.ordered-list-item > ol.ordered-list > li.ordered-list-item-2 > ol.ordered-list > li.ordered-list-item-3:fresh',
+        // 'p.OrderedListItem4 => ol.ordered-list > li.ordered-list-item > ol.ordered-list > li.ordered-list-item-2 > ol.ordered-list > li.ordered-list-item-3 > ol.ordered-list > li.ordered-list-item-4:fresh',
+
+
+
       ],
+
+     
     };
 
-
-    const { value: html } = await mammoth.convertToHtml(
+    // Convert DOCX to HTML
+    const { value: rawHtml } = await mammoth.convertToHtml(
       { path: filePath },
+      // { transformDocument: mammoth.transforms.paragraph(transformElement) },
       mammothOptions
     );
-  //   const { value: html }  = await mammoth.convertToHtml({ path: filePath }, {
-  //     transformDocument: mammoth.transforms.paragraph((paragraph) =>listConverter(paragraph, []))
-  // });
+    
+    fs.writeFile('abc.html',rawHtml, (err) => {
+      if (err) {
+        console.error('Error writing to file', err);
+      } else {
+        console.log('File successfully written to abbc.html');
+      }
+    });
+
+    //  let d=abc(rawHtml)
     const fullHtml = `
     <!DOCTYPE html>
     <html>
@@ -112,7 +211,7 @@ async function convertDocxToDita(filePath) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-        ${html}
+        ${rawHtml}
     </body>
     </html>
 `;
@@ -120,7 +219,7 @@ async function convertDocxToDita(filePath) {
     const $ = cheerio.load(fullHtml);
     $("table").each((index, element) => {
       let maxCols = 0;
-    
+
       // Iterate through each row to find the maximum number of columns
       $(element).find("tr").each((rowIndex, rowElement) => {
         const colsInRow = $(rowElement).find("th, td").length;
@@ -128,22 +227,23 @@ async function convertDocxToDita(filePath) {
           maxCols = colsInRow;
         }
       });
-    
+
       // Prepend the colgroup with the maximum number of columns
       $(element).prepend(`<colgroup cols="${maxCols}" />`);
     });
-    
-$('img').each((index, element) => {
-  const src = $(element).attr('src');
 
- // Check if the src is a Base64-encoded image
-  const base64Prefix = 'data:image/';
-  if (src.startsWith(base64Prefix)) {
-      const mimeType = src.substring(base64Prefix.length, src.indexOf(';'));
-      const isPng = mimeType === 'png';
-      const isJpeg = mimeType === 'jpeg' || mimeType === 'jpg';
+    $('img').each((index, element) => {
+   
+      const src = $(element).attr('src');
 
-      if (isPng || isJpeg) {
+      // Check if the src is a Base64-encoded image
+      const base64Prefix = 'data:image/';
+      if (src.startsWith(base64Prefix)) {
+        const mimeType = src.substring(base64Prefix.length, src.indexOf(';'));
+        const isPng = mimeType === 'png';
+        const isJpeg = mimeType === 'jpeg' || mimeType === 'jpg';
+
+        if (isPng || isJpeg) {
           // Determine the correct extension for saving
           const extension = isPng ? 'png' : 'jpg';
           const pathToSaveImage = `${OutputPath}/media/image${index}.${extension}`;
@@ -152,11 +252,11 @@ $('img').each((index, element) => {
           // Convert the image and update the src attribute
           const path = converBase64ToImage(src, pathToSaveImage);
           $(element).attr('src', pathToSaveImagewithMedia);
-      } else {
+        } else {
           console.log(`Image at index ${index} is not a PNG or JPEG: ${mimeType}`);
+        }
       }
-  }
-});
+    });
 
 
     const modifiedHtml = $.html();
@@ -256,10 +356,10 @@ $('img').each((index, element) => {
         }
 
         const removedIdFromXrefAttachedToTitle = attachIdToTitle(modifiedDitaCode)
-        let getRandomIdAddedXmlData = addRandomIdToTags(removedIdFromXrefAttachedToTitle)
-        XrefHrefIds(getRandomIdAddedXmlData)
-        let boldTagdeletion = removeBoldTags(getRandomIdAddedXmlData)
-
+        // let getRandomIdAddedXmlData = addRandomIdToTags(removedIdFromXrefAttachedToTitle)
+        XrefHrefIds(removedIdFromXrefAttachedToTitle)
+        let boldTagdeletion = removeBoldTags(removedIdFromXrefAttachedToTitle)
+   
         let topicWise = fileSeparator(boldTagdeletion);
 
         let newPath = filePath
@@ -343,22 +443,22 @@ $('img').each((index, element) => {
             fs.mkdirSync(outputDir, { recursive: true });
           }
 
-         
- //-----------------total different thing          
+
+          //-----------------total different thing          
           //   function cleanNestedXref(xmlString) {
           //     // Define a regular expression to match the nested xref inside href attributes
           //     const nestedXrefPattern = /<xref href="\.\/<xref_href="([^"]+)">([^<]+)<\/xref>\.dita#([^"]+)"/g;
-              
+
           //     // Replace all instances of nested xref in href attributes
           //     let cleanedXmlString = xmlString.replaceAll(nestedXrefPattern, (match, bookmark, text, bookmarkSuffix) => {
           //         return `<xref href="./${text}.dita#${bookmarkSuffix}"`;
           //     });
-              
+
           //     return cleanedXmlString;
           // }
-          
-          
-    //--------------------------------------------------------------------------
+
+
+          //--------------------------------------------------------------------------
           fileInfo.nestObj.push({
             level: tc.level,
             path: outputFilePath,
@@ -402,31 +502,31 @@ $('img').each((index, element) => {
           if (err) {
             return console.error('Unable to scan directory:', err);
           }
-        
+
           const ditaFiles = files.filter(file => path.extname(file) === '.dita');
-        
+
           ditaFiles.forEach(file => {
             const OutputPath = path.join(outputDirName, outputId, file);
             extractIds(OutputPath);
-        
+
             // Read the content of each file
             fs.readFile(OutputPath, 'utf8', (err, content) => {
               if (err) {
                 return console.error('Error reading file:', err);
               }
-        
+
               // Set modifiedContent to the content of the file
               let modifiedContent = content;
-        
+
               let XrefrenceHrefId = getXrefJsonData();
               let JsonDataIDTopicId = getJsonData();
-        
+
               // Create a dictionary for quick lookup of JSON data by ID
               let aDict = {};
               JsonDataIDTopicId.forEach(item => {
                 aDict[item.id] = item;
               });
-        
+
               // Get matched details from the references and dictionary
               let matchedDetails = XrefrenceHrefId
                 .filter(id => aDict.hasOwnProperty(id))
@@ -435,14 +535,14 @@ $('img').each((index, element) => {
                   TopicId: aDict[id].TopicId,
                   FileName: aDict[id].FileName
                 }));
-        
+
               // Perform replacements in the content
               matchedDetails.forEach(item => {
                 const regex = new RegExp(`<xref href="#${item.id}"`, 'g');
                 const replacement = `<xref href="./${item.FileName}#${item.TopicId}/${item.id}"`;
                 modifiedContent = modifiedContent.replaceAll(regex, replacement);
               });
-        
+
               // You can then save the modified content back to the file or another output as needed
               fs.writeFile(OutputPath, modifiedContent, 'utf8', (err) => {
                 if (err) {
@@ -452,9 +552,9 @@ $('img').each((index, element) => {
             });
           });
         });
-        
+
       } catch (error) {
-       console.log(error);
+        console.log(error);
       }
     });
 
@@ -488,7 +588,7 @@ $('img').each((index, element) => {
 
       return footnoterelatedOlLI
     }
-console.log("Doc to Dita converted succesfully")
+    console.log("Docx to Dita converted succesfully")
     return downloadLink
   } catch (error) {
     console.error("Error converting DOCX to DITA:", error);
@@ -521,7 +621,7 @@ function DitaMapMaker(fetchData, title, OutputPath) {
     });
 
   } catch (error) {
-console.log(error);
+    console.log(error);
   }
 
   function createXMLStructure(data) {
