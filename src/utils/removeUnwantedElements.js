@@ -1,6 +1,6 @@
 const { schema } = require("../schema");
 const validateURL = require("./validateURL");
-const { addJsonData, addXrefJsonData, addContentData } = require('./LocalData');
+const { addJsonData, addXrefJsonData, addContentData } = require('./StateManagement');
 function getColumnIndex(json) {
   let currentIndex = 1;
   let currentEntry = json;
@@ -13,8 +13,8 @@ function getColumnIndex(json) {
   return currentIndex;
 }
 function removeUnwantedElements(
-  json /*any tag details as a dom json*/,
-  parentDetails /*details of immediate parent of any tag*/,
+  json ,
+  parentDetails ,
   parentDivClass
 ) {
   if (typeof json === "object" && json !== null) {
@@ -22,7 +22,7 @@ function removeUnwantedElements(
 
     let currentDivClass;
 
-    // replace or remove switch case based on schema and custom condition as per project requirements
+ 
     switch (type) {
       case "link":
         json.type = "";
@@ -49,7 +49,6 @@ function removeUnwantedElements(
             delete parentDetails.attributes;
           }
           if (parentDivClass) {
-            // fs.writeFileSync("bug.text",""+bugCount++,"utf-8")
             json.attributes = {};
             json.attributes.class =
               (json.attributes?.class || "") + ` ${parentDivClass}`;
@@ -195,13 +194,7 @@ function removeUnwantedElements(
       case "a":
         json.type = "xref";
         let attra = json.attributes;
-        // if(attra?.href){
-        //   const url = attra.href;
-        //   const urlRegex = /^(http:\/\/|https:\/\/)/i;
-        //   if (!url.match(urlRegex)) {
-        //     addXrefJsonData(url?.replace(/^#/, ''))
-        //   }
-        // }
+    
   
 
         if (attra.target == "_blank") {
@@ -245,7 +238,7 @@ function removeUnwantedElements(
           json.attributes.namest = nameStart;
           json.attributes.nameend = nameEnd;
 
-          delete json.attributes.colspan; // Remove the colspan attribute
+          delete json.attributes.colspan; 
         }
         if (rowspanValue && rowspanValue === "1") {
           json.attributes.moreRow = "1";

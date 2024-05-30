@@ -9,7 +9,6 @@ function addTopicTag(xmlString) {
   let titles = [];
   let currentNode = body.firstChild;
 
-  // Collect <title> elements
   while (currentNode) {
     if (currentNode.nodeName === "title") {
       titles.push(currentNode);
@@ -45,7 +44,7 @@ function addTopicTag(xmlString) {
     while (currentNode && currentNode !== nextTitle) {
       if (currentNode.nodeName !== "title" && currentNode.nodeName !== "shortdesc") {
         const nextNode = currentNode.nextSibling;
-        bodyElement.appendChild(currentNode); // Move the node into the body
+        bodyElement.appendChild(currentNode); 
         currentNode = nextNode;
       } else {
         currentNode = currentNode.nextSibling;

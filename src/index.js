@@ -4,7 +4,12 @@ const mammoth = require("mammoth")
 const fs = require("fs")
 const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
 const cheerio = require("cheerio");
-const abc=require("./utils/abc.js")
+const {cleanXMLStringP,cleanXMLStringNote}=require("./utils/NestedOlLiHandling.js")
+const npq=require("./utils/npq.js")
+const mno=require("./utils/mno.js")
+const abc=require("./utils/movePTagInsideLi.js")
+const abc1=require("./utils/abc1.js")
+const {replaceXmlStringP,replaceXmlStringNote,replaceXmlStringPWithSingleOl,replaceXmlStringNoteWithSingleOl}=require("./utils/WrapPtagOLWithLi.js")
 const addRandomIdToTopics = require("./utils/addRandomGeneratedId.js")
 const moveTitleAboveBody = require("./utils/moveTitleAboveBody.js");
 const moveTgroupClosingTagBeforeTable = require("./utils/moveTgroupClosingTagBeforeTable.js");
@@ -23,7 +28,7 @@ const dtdTask = require("./utils/dtdTask.js");
 const generateRandomId = require("./utils/generateRandomId.js");
 const addIdTOFigTag = require("./utils/addIdtoFigTag.js")
 const addRandomIdToTags = require("./utils/addRandomIdToTags.js")
-const { addData, getData, resetData, setIsBodyEmpty, getIsBodyEmpty, getJsonData, getXrefJsonData } = require("./utils/LocalData.js");
+const { addData, getData, resetData, setIsBodyEmpty, getIsBodyEmpty, getJsonData, getXrefJsonData, setInputFileName } = require("./utils/StateManagement.js");
 const archiver = require('archiver');
 const removeBoldTags = require("./utils/RemoveBoldTagFromTitle.js");
 const replaceOlWIthFn = require("./utils/replaceOlWithFn.js")
@@ -47,61 +52,39 @@ async function convertDocxToDita(filePath) {
   const outputId = Math.random().toString(36).substring(7);
 
   const OutputPath = path.join(outputDirName, outputId);
+  function transformElement(element) {
 
-  try {
-    // const mammothOptions = {
-    //   // ----------------------------------------------------------------------
-    //   styleMap: [
-    //     "p[style-name='Title'] => h1:fresh",
-    //     "p[style-name='AltTitle'] => alttitle:fresh",
-    //     "p[style-name='Quote'] => note > p:fresh",
-    //     "p[style-name='Hyperlink'] => a:fresh",
-    //     "p[style-name='Figure'] => fig:fresh",
-    //     "p[style-name='OrderedList'] => ol > li:fresh",       
-    //     "p[style-name='OrderedListitem2'] => ol > ol > li:fresh", 
-
-    //   ],
-    // };
-
-
-    // const { value: html } = await mammoth.convertToHtml(
-    //   { path: filePath },
-    //   mammothOptions
-    // );
-
-    const transformElement = (element) => {
   
-      if (element.type === "paragraph" && element.styleId) {
-          let type;
-          switch (element.styleId) {
-              case "NoteStyle":
-                  type = "note";
-                  break;
-              case "CautionStyle":
-                  type = "caution";
-                  break;
-              case "DangerStyle":
-                  type = "danger";
-                  break;
-          }
-          // console.log(type);
-          if (type) {
-            console.log(element.children);
-              return {
-                  type: "element",
-                  tag: "note",
-                  children: element.children,
-                  attributes: {
-                
-                      type: type
-                  }
-              };
-          }
+    if (!element) {
+      return;
+    }
+  
+    if (element.children) {
+      element.children.forEach(transformElement);
+    }
+
+    if (element?.type === "paragraph" && element?.styleId) {
+
+      switch (element.styleId) {
+     
+        case "NoteStyle":
+          element.attributes = { type: "note" };
+         
+          break;
+        case "CautionStyle":
+          element.attributes = {  type: "caution" };
+          break;
+        case "DangerStyle":
+          element.attributes = {type: "danger" };
+          break;
+        default:
+          break;
       }
-      return element;
-  };
-  
-  
+            }
+
+    return element;
+  }
+  try {
     const mammothOptions = {
       styleMap: [
         "p[style-name='Title'] => h1:fresh",
@@ -109,100 +92,27 @@ async function convertDocxToDita(filePath) {
         "p[style-name='Quote'] => blockquote:fresh",
         "p[style-name='Hyperlink'] => a:fresh",
         "p[style-name='Figure'] => figure:fresh",
-
-        // 'p.NoteStyle => note:fresh',
-        // 'p.CautionStyle => note:fresh',
-        // 'p.DangerStyle => note:fresh',
-
+        "p.OrderedList => li[id^=_Toc] > ol > li:fresh",
+        "p.OrderedListitem2 =>  ol > li > ol > li:fresh",
+        "p.Orderedlistitem3 =>  ol > li > ol > li > ol > li:fresh",
+        "p.OrderListitem4 =>  ol > li > ol > li > ol > li > ol > li:fresh",
+        "p.OrderListitem5 =>  ol > li > ol > li > ol > li > ol > li > ol > li:fresh",
+        "p.OrderListitem6 =>  ol > li > ol > li > ol > li > ol > li > ol > li > ol > li:fresh",
         'p.NoteStyle => note:fresh',
         'p.CautionStyle => note:fresh',
         'p.DangerStyle => note:fresh',
-        // 'p.OrderedList => ol> li> ol.OrderedList > li.ordered-list-item:fresh',
-        // 'p.OrderedListitem2 =>ol.OrderedList > li.ordered-list-item>ol>li> ol.OrderedListitem2 > li.ordered-list-item-2:fresh',
-
-        // 'p.OrderedListitem3 => ol.OrderedList > li.ordered-list-item > ol.OrderedListitem2 > li.ordered-list-item-2 > ol.OrderedListitem3 > li.ordered-list-item-3:fresh',
-
-        // 'p.OrderedListitem4 => ol.OrderedList > li.ordered-list-item > ol.OrderedListitem2 > li.ordered-list-item-2 > ol.OrderedListitem3 > li.ordered-list-item-3 > ol.OrderedListitem4 > li.ordered-list-item-4 :fresh',
-
-        // "p.OrderedList => ol > li:fresh",
-        // "p.OrderedListitem2 => ol > li > ol > li:fresh",
-        // "p.OrderedListitem3 => ol > li > ol > li > li > ol > li:fresh",
-        // "p.OrderedListitem4 => ol > li > ol > li > ol > li > ol > li:fresh"
-
-        "p.OrderedList => li[id^=_Toc] > ol > li:fresh",
-        "p.OrderedListitem2 =>  ol > li > ol > li:fresh",
-         "p.Orderedlistitem3 =>  ol > li > ol > li > ol > li:fresh",
-         "p.OrderListitem4 =>  ol > li > ol > li > ol > li > ol > li:fresh",
-         "p.OrderListitem5 =>  ol > li > ol > li > ol > li > ol > li > ol > li:fresh",
-         "p.OrderListitem6 =>  ol > li > ol > li > ol > li > ol > li > ol > li > ol > li:fresh",
-        //  "p:has(image) => li > img"
-        // //  "r[isImage] => div > img",
-        // //  "p:has(> img) => li > div",
-        //  "p.FigureStyle => fig:fresh"
-     
-        // 'p.OrderedList => li[id^=_Toc] > ol > li:fresh',
-        // 'p.OrderedListitem2 => ol > li > ol > li:fresh',
-        // 'p.OrderedListitem3 => ol > li > ol > li > ol > li:fresh',
-        // 'p.OrderListitem4 => ol > li > ol > li > ol > li > ol > li:fresh',
-        // 'p.OrderListitem5 => ol > li > ol > li > ol > li > ol > li > ol > li:fresh',
-        // 'p.OrderListitem6 => ol > li > ol > li > ol > li > ol > li > ol > li > ol > li:fresh',
-        
-       
-        
-      
-        
-        // 'p.OrderedList => ol > li> ol.OrderedList > li.ordered-list-item:fresh',
-        // 'p.OrderedListItem2 =>ol > li> ol.OrderedList > ol>li.ordered-list-item >ol>li> ol.OrderedListItem2 > li.ordered-list-item-2:fresh',
-
-        // 'p.OrderedListItem3 => ol >li> ol.OrderedList > li.ordered-list-item > ol.OrderedListItem2 > li.ordered-list-item-2 > ol> li> ol.OrderedListItem3 > li.ordered-list-item-3:fresh',
-        // 'p.OrderedListItem4 => ol>li>ol.OrderedList > li.ordered-list-item > ol.OrderedListItem2 > li.ordered-list-item-2 > ol.OrderedListItem3 > li.ordered-list-item-3 > ol.OrderedListItem4 > li.ordered-list-item-4:fresh'
-        
-    
-
-
-
-
-
-
-        // 'p.OrderedList => ol.ordered-list > li.ordered-list-item:fresh',
-
-        // 'p.OrderedListitem2 => ol.ordered-list > li.ordered-list-item> ol.ordered-list-item2 > li.ordered-list-item-2:fresh',
-
-        // 'p.OrderedListitem3 => ol.ordered-list > li.ordered-list-item > ol.ordered-list-item2 > li.ordered-list-item-2 > ol.OrderedListitem3 > li.ordered-list-item-3:fresh',
-
-        // 'p.OrderedListitem4 => ol.ordered-list > li.ordered-list-item > ol.ordered-list-item2 > li.ordered-list-item-2 > ol.ordered-list-item3 > li.ordered-list-item-3 > ol.ordered-list-item4 > li.ordered-list-item-4 :fresh',
-
-
-
-
-        // 'p.OrderedList => ol.ordered-list > li.ordered-list-item:fresh',
-        // 'p.OrderedListItem2 => ol.ordered-list > li.ordered-list-item > ol.ordered-list > li.ordered-list-item-2:fresh',
-        // 'p.OrderedListItem3 => ol.ordered-list > li.ordered-list-item > ol.ordered-list > li.ordered-list-item-2 > ol.ordered-list > li.ordered-list-item-3:fresh',
-        // 'p.OrderedListItem4 => ol.ordered-list > li.ordered-list-item > ol.ordered-list > li.ordered-list-item-2 > ol.ordered-list > li.ordered-list-item-3 > ol.ordered-list > li.ordered-list-item-4:fresh',
-
-
 
       ],
 
-     
-    };
 
-    // Convert DOCX to HTML
+    };
     const { value: rawHtml } = await mammoth.convertToHtml(
       { path: filePath },
-      // { transformDocument: mammoth.transforms.paragraph(transformElement) },
-      mammothOptions
-    );
-    
-    fs.writeFile('abc.html',rawHtml, (err) => {
-      if (err) {
-        console.error('Error writing to file', err);
-      } else {
-        console.log('File successfully written to abbc.html');
+      {
+        ...mammothOptions,
+        transformDocument: mammoth.transforms.paragraph(transformElement)
       }
-    });
-
-    //  let d=abc(rawHtml)
+    );
     const fullHtml = `
     <!DOCTYPE html>
     <html>
@@ -219,8 +129,6 @@ async function convertDocxToDita(filePath) {
     const $ = cheerio.load(fullHtml);
     $("table").each((index, element) => {
       let maxCols = 0;
-
-      // Iterate through each row to find the maximum number of columns
       $(element).find("tr").each((rowIndex, rowElement) => {
         const colsInRow = $(rowElement).find("th, td").length;
         if (colsInRow > maxCols) {
@@ -228,15 +136,15 @@ async function convertDocxToDita(filePath) {
         }
       });
 
-      // Prepend the colgroup with the maximum number of columns
+
       $(element).prepend(`<colgroup cols="${maxCols}" />`);
     });
 
     $('img').each((index, element) => {
-   
+
       const src = $(element).attr('src');
 
-      // Check if the src is a Base64-encoded image
+
       const base64Prefix = 'data:image/';
       if (src.startsWith(base64Prefix)) {
         const mimeType = src.substring(base64Prefix.length, src.indexOf(';'));
@@ -244,12 +152,12 @@ async function convertDocxToDita(filePath) {
         const isJpeg = mimeType === 'jpeg' || mimeType === 'jpg';
 
         if (isPng || isJpeg) {
-          // Determine the correct extension for saving
+
           const extension = isPng ? 'png' : 'jpg';
           const pathToSaveImage = `${OutputPath}/media/image${index}.${extension}`;
           const pathToSaveImagewithMedia = `media/image${index}.${extension}`;
 
-          // Convert the image and update the src attribute
+
           const path = converBase64ToImage(src, pathToSaveImage);
           $(element).attr('src', pathToSaveImagewithMedia);
         } else {
@@ -257,19 +165,17 @@ async function convertDocxToDita(filePath) {
         }
       }
     });
-
-
     const modifiedHtml = $.html();
     const contentWithHmtlAsRootElement = extractHTML(modifiedHtml);
 
     let footNoteList = [];
     let result = await HTMLToJSON(contentWithHmtlAsRootElement, false);
 
-    // remove unwanted elements such as \n
+
     function removeNewlines(array) {
       return array.filter((item) => typeof item !== "string" || item !== "\n");
     }
-    // Extract footnotes elements and store them in footNoteList
+
     result.content.map((e) => {
       if (e.type === "body") {
         e.content.map((ele) => {
@@ -283,20 +189,18 @@ async function convertDocxToDita(filePath) {
 
     result = removeUnwantedElements(
       result,
-      {} /*parent tag details*/,
-      "" /*parent div class*/
+      {} ,
+      "" 
     );
 
     result = characterToEntity(result);
-
-    // Preprocess footNoteList into a Map for efficient lookup
 
     const footNoteMap = new Map();
     footNoteList.forEach((obj) => {
       footNoteMap.set(obj.attributes.id, obj.content[0].content[0]);
     });
 
-    // Main logic -- FootNote
+
     result.content.forEach((e) => {
       if (e.type === "body") {
         e.content.forEach((ele) => {
@@ -314,9 +218,9 @@ async function convertDocxToDita(filePath) {
             });
           }
           if (ele.type === "section" && ele.attributes?.class === "footnotes") {
-            ele.content = []; // Clear content
-            ele.type = ""; // Clear type
-            ele.attributes = {}; // Clear attributes
+            ele.content = [];
+            ele.type = "";
+            ele.attributes = {}; 
           }
         });
       }
@@ -330,7 +234,6 @@ async function convertDocxToDita(filePath) {
 
         const cleanedUpJson = await HTMLToJSON(cleanedUpContent, false);
 
-        // Logic for wrapping plain text inside paragraph tags
         if (Array.isArray(cleanedUpJson.content)) {
           cleanedUpJson.content.forEach((ele) => {
             if (ele.type === "body" && Array.isArray(ele.content)) {
@@ -351,16 +254,40 @@ async function convertDocxToDita(filePath) {
         const modifiedDitaCode = codeRestructure(
           await JSONToHTML(characterToEntity(cleanedUpJson))
         );
+
         function capitalizeFirstWord(str) {
           return str.charAt(0).toUpperCase() + str.slice(1);
         }
+        
+         
 
         const removedIdFromXrefAttachedToTitle = attachIdToTitle(modifiedDitaCode)
-        // let getRandomIdAddedXmlData = addRandomIdToTags(removedIdFromXrefAttachedToTitle)
+
+       
         XrefHrefIds(removedIdFromXrefAttachedToTitle)
+ 
         let boldTagdeletion = removeBoldTags(removedIdFromXrefAttachedToTitle)
-   
-        let topicWise = fileSeparator(boldTagdeletion);
+       let pTagListing= cleanXMLStringP(boldTagdeletion)
+  //   let olLIStringP=replaceXmlStringP(boldTagdeletion)
+  //  let olLIStringNote= replaceXmlStringNote(olLIStringP)
+  // let PWithSingleOl= replaceXmlStringPWithSingleOl(olLIStringNote)
+  // let NoteWithSingleOl=replaceXmlStringNoteWithSingleOl(PWithSingleOl) 
+        // let g=pqr(boldTagdeletion)
+           // let h=abc(g)
+              // let r=mno(h)
+              // let b=npq(r)
+              // let d=abc1(b)
+              let NoteTagListing= cleanXMLStringNote(pTagListing)
+
+              let h=abc(NoteTagListing)
+            
+      //  let r=mno(h)
+            
+              // let r=mno(h)
+              // let b=npq(r)
+              // let d=abc1(NoteTagListing)
+              // let getRandomIdAddedXmlData = addRandomIdToTags(h)
+        let topicWise = fileSeparator(h);
 
         let newPath = filePath
           .replace(/\\/g, "/")
@@ -385,11 +312,8 @@ async function convertDocxToDita(filePath) {
         topicWise.topics.map((tc, index) => {
 
           let dtdType = "topic";
-
-          // Validate tags
           tc.content = tagsValidator(tc.content);
 
-          // Check if the content is a concept
           let result = dtdConcept(tc.content);
 
           if (result.boolValue) {
@@ -424,7 +348,7 @@ async function convertDocxToDita(filePath) {
             fileNameOnTitle;
 
           if (actualPath.endsWith(".doc")) {
-            // Replace ".doc" with ".dita"
+    
             outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
               /\.doc$/,
               ".dita"
@@ -442,23 +366,6 @@ async function convertDocxToDita(filePath) {
           if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
           }
-
-
-          //-----------------total different thing          
-          //   function cleanNestedXref(xmlString) {
-          //     // Define a regular expression to match the nested xref inside href attributes
-          //     const nestedXrefPattern = /<xref href="\.\/<xref_href="([^"]+)">([^<]+)<\/xref>\.dita#([^"]+)"/g;
-
-          //     // Replace all instances of nested xref in href attributes
-          //     let cleanedXmlString = xmlString.replaceAll(nestedXrefPattern, (match, bookmark, text, bookmarkSuffix) => {
-          //         return `<xref href="./${text}.dita#${bookmarkSuffix}"`;
-          //     });
-
-          //     return cleanedXmlString;
-          // }
-
-
-          //--------------------------------------------------------------------------
           fileInfo.nestObj.push({
             level: tc.level,
             path: outputFilePath,
@@ -473,7 +380,7 @@ async function convertDocxToDita(filePath) {
               )}//EN" "${dtdType}.dtd">
              ${tc.content}`,
               {
-                encoding: 'utf-8', // Specify UTF-8 encoding
+                encoding: 'utf-8',
               }
             );
           } else if (!isBodyEmpty) {
@@ -485,13 +392,12 @@ async function convertDocxToDita(filePath) {
               )}//EN" "${dtdType}.dtd">
              ${tc.content}`,
               {
-                encoding: 'utf-8', // Specify UTF-8 encoding
+                encoding: 'utf-8', 
               }
             );
 
           }
 
-          // logData.parsedFiles.push(outputFilePath);
           addData(fileInfo)
 
         });
@@ -509,25 +415,22 @@ async function convertDocxToDita(filePath) {
             const OutputPath = path.join(outputDirName, outputId, file);
             extractIds(OutputPath);
 
-            // Read the content of each file
+      
             fs.readFile(OutputPath, 'utf8', (err, content) => {
               if (err) {
                 return console.error('Error reading file:', err);
               }
 
-              // Set modifiedContent to the content of the file
               let modifiedContent = content;
 
               let XrefrenceHrefId = getXrefJsonData();
               let JsonDataIDTopicId = getJsonData();
 
-              // Create a dictionary for quick lookup of JSON data by ID
               let aDict = {};
               JsonDataIDTopicId.forEach(item => {
                 aDict[item.id] = item;
               });
 
-              // Get matched details from the references and dictionary
               let matchedDetails = XrefrenceHrefId
                 .filter(id => aDict.hasOwnProperty(id))
                 .map(id => ({
@@ -535,15 +438,12 @@ async function convertDocxToDita(filePath) {
                   TopicId: aDict[id].TopicId,
                   FileName: aDict[id].FileName
                 }));
-
-              // Perform replacements in the content
               matchedDetails.forEach(item => {
                 const regex = new RegExp(`<xref href="#${item.id}"`, 'g');
                 const replacement = `<xref href="./${item.FileName}#${item.TopicId}/${item.id}"`;
                 modifiedContent = modifiedContent.replaceAll(regex, replacement);
               });
 
-              // You can then save the modified content back to the file or another output as needed
               fs.writeFile(OutputPath, modifiedContent, 'utf8', (err) => {
                 if (err) {
                   return console.error('Error writing file:', err);
@@ -562,9 +462,13 @@ async function convertDocxToDita(filePath) {
 
     const downloadLink = `http://localhost:${PORT}/api/download/${downloadId}`;
 
+    let fileName=path.parse(path.basename(filePath)).name+".zip";
+  
+    setInputFileName(fileName)
     const downloadPath = path.join(__dirname, "downloads", downloadId);
     fs.mkdirSync(downloadPath, { recursive: true });
-    const outputZipPath = path.join(downloadPath, "output.zip");
+    const outputZipPath = path.join(downloadPath, `${fileName}`);
+
     // Create zip file
     const archive = archiver('zip', {
       zlib: { level: 9 }, // Set compression level

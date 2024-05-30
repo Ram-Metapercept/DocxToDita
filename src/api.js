@@ -8,6 +8,7 @@ const fs = require('fs');
 const outputFile = path.join(__dirname, "./output");
 const shell = require("shelljs");
 const cors = require('cors');
+const { getInputFileName, resetInputFileName } = require('./utils/StateManagement');
 app.use(fileUpload());
 app.use(cors())
 let inputDocxFile = path.join(__dirname, `./inputs/`);
@@ -168,21 +169,29 @@ app.get('/api/convertDocxToDita', async (req, res) => {
 
 app.get("/api/download/:downloadId", (req, res) => {
   const downloadId = req.params.downloadId;
+
+  originalFileName=getInputFileName()
   const downloadPath = path.join(
     __dirname,
     "downloads",
     downloadId,
-    "output.zip"
+    originalFileName
   );
-
+ 
   // Check if the file exists
   if (fs.existsSync(downloadPath)) {
+ 
     // Set response headers for downloading the zip file 
     res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", "attachment; filename=output.zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${originalFileName}"`
+    );
+   
     // Pipe the zip file to the response
     const fileStream = fs.createReadStream(downloadPath);
     fileStream.pipe(res);
+  //  resetInputFileName()
   } else {
     res.status(404).json({ message: "File not found", status: 404 });
   }

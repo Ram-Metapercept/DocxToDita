@@ -1,6 +1,5 @@
 const replaceSpecialCharactersWithEntities = require("./replaceSpecialCharactersWithEntities");
 
-// recursive function for converting special character to html entity in json content
 function characterToEntity(json) {
   if (json.attributes) {
     for (const key in json.attributes) {

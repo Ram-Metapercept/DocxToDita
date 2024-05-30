@@ -18,7 +18,7 @@ function NestinTopicTag(xmlString) {
           let nextSibling = currentTopic.nextSibling;
           let subTopics = [];
   
-          // Iterate through subsequent siblings
+        
           while (nextSibling && nextSibling.nodeName === "topic") {
             const subTitle = nextSibling.getElementsByTagName("title")[0];
             if (subTitle) {
@@ -30,15 +30,15 @@ function NestinTopicTag(xmlString) {
                 subOutputclass === "h5" || 
                 subOutputclass === "h6"
               ) {
-                // Move the whole topic block to the subTopics array
+                
                 subTopics.push(nextSibling);
               } else {
-                break; // Break the loop if the title is not h2, h3, h4, h5, or h6
+                break; 
               }
             } else {
-              break; // Break the loop if the next sibling doesn't have a title
+              break; 
             }
-            // Move to the next sibling
+
             nextSibling = nextSibling.nextSibling;
           }
   
@@ -53,7 +53,7 @@ function NestinTopicTag(xmlString) {
           let nextSibling = currentTopic.nextSibling;
           let subTopics = [];
   
-          // Iterate through subsequent siblings
+       
           while (nextSibling && nextSibling.nodeName === "topic") {
             const subTitle = nextSibling.getElementsByTagName("title")[0];
             if (subTitle) {
@@ -64,15 +64,15 @@ function NestinTopicTag(xmlString) {
                 (outputclass === "h4" && (subOutputclass === "h5" || subOutputclass === "h6")) ||
                 (outputclass === "h5" && subOutputclass === "h6")
               ) {
-                // Move the whole topic block to the subTopics array
+              
                 subTopics.push(nextSibling);
               } else {
-                break; // Break the loop if the title is not the expected heading level
+                break; 
               }
             } else {
-              break; // Break the loop if the next sibling doesn't have a title
+              break;
             }
-            // Move to the next sibling
+
             nextSibling = nextSibling.nextSibling;
           }
   
@@ -85,7 +85,6 @@ function NestinTopicTag(xmlString) {
         }
       }
     }
-  
     const serializer = new XMLSerializer();
     const modifiedXmlString = serializer.serializeToString(xmlDoc);
   

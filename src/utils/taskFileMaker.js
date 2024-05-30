@@ -16,8 +16,8 @@ function taskFileMaker(filePath, data) {
     // removing unwanted elements
     data = removeUnwantedElements2(
       data,
-      {} /*parent tag details*/,
-      "" /*parent div class*/
+      {} ,
+      "" 
     );
 
     JSONToHTML(data)
@@ -68,13 +68,13 @@ function taskFileMaker(filePath, data) {
           let outputFilePath = "";
 
           if (newNewPath.endsWith(".md")) {
-            // Replace ".md" with ".dita"
+     
             outputFilePath = `${outputDirName}${newNewPath.replace(
               /\.md$/,
               ".dita"
             )}`;
           } else if (newNewPath.endsWith(".mdx")) {
-            // Replace ".mdx" with ".dita"
+        
             outputFilePath = `${outputDirName}${newNewPath.replace(
               /\.mdx$/,
               ".dita"
@@ -107,13 +107,13 @@ function taskFileMaker(filePath, data) {
             "Successfully parsed =>",
             outputFilePath
           );
-          resolve(); // Resolve the promise upon successful completion
+          resolve(); 
         } catch (error) {
           console.log(error, filePath);
-          reject(error); // Reject the promise if an error occurs
+          reject(error); 
         }
       })
-      .catch(reject); // Pass any errors from JSONToHTML or HTMLToJSON to the outer promise
+      .catch(reject); 
   });
 }
 

@@ -2,7 +2,7 @@
 const fs = require('fs');
 const xml2js = require('xml2js');
 const path = require('path');
-const {addXrefJsonData } = require('./LocalData');
+const {addXrefJsonData } = require('./StateManagement');
 
 function XrefHrefIds(xmlData) {
 
@@ -13,8 +13,8 @@ function XrefHrefIds(xmlData) {
             return;
         }
         const xrefIds = [];
-        const regex1 = /<xref\s+href="([^"]+)"/g; // Regex pattern to match xref href attributes
-        const content = xmlData.toString(); // Convert XML data to string for regex matching
+        const regex1 = /<xref\s+href="([^"]+)"/g; 
+        const content = xmlData.toString(); 
         let match1;
         while ((match1 = regex1.exec(content)) !== null) {
             const hrefValue = match1[1];

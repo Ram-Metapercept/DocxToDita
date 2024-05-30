@@ -1,6 +1,6 @@
 const fs = require('fs');
 const xml2js = require('xml2js');
-const { addJsonData, addContentData } = require('./LocalData');
+const { addJsonData, addContentData } = require('./StateManagement');
 
 function extractXrefIds(filePath) {
 
@@ -12,12 +12,12 @@ function extractXrefIds(filePath) {
             console.error('Error parsing XML:', err);
             return;
         }
-        const content = xmlData.toString(); // Convert XML data to string for regex matching
+        const content = xmlData.toString();
         addContentData(content)
         let regex = /<(?!topic|concept)[^>]*\bid="([^"]+)"/g;
 
         let matches;
-        let data = []; // Array to store extracted data
+        let data = []; 
 
         while ((matches = regex?.exec(content)) !== null) {
 

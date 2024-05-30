@@ -6,7 +6,6 @@ function moveTitleAboveBody(xmlString) {
   const xmlDoc = parser.parseFromString(xmlString, "text/xml");
   const titles = xmlDoc.getElementsByTagName("title");
   const titlesAlts = xmlDoc.getElementsByTagName("titlealts");
-  // Check if the first title is found within the body
   const topic = xmlDoc.getElementsByTagName("topic")[0];
 
   const title = titles[0];
@@ -25,8 +24,7 @@ function moveTitleAboveBody(xmlString) {
     titles.length > 0 &&
     titles[0].parentNode.tagName.toLowerCase() === "body"
   ) {
-    // topic.insertBefore(title, topic.firstChild);
-    // topic.insertBefore(titlealts, topic.firstChild);
+
     title.removeAttribute("outputclass");
     xmlDoc.documentElement.removeChild(title);
 

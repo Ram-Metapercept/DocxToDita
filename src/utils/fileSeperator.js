@@ -14,25 +14,6 @@ function generateDITAMap(topics, ditaMapFilename) {
   return ditaMapContent;
 }
 
-// Function to generate a random ID
-// function generateRandomId(length = 8) {
-//   const letters = 'abcdefghijklmnopqrstuvwxyz';
-//   const digits = '0123456789';
-//   let result = '';
-  
-//   // Start the ID with a random letter
-//   result += letters.charAt(Math.floor(Math.random() * letters.length));
-  
-//   // Append the rest of the ID with a combination of letters and digits
-//   for (let i = 1; i < length; i++) {
-//       const characters = i % 2 === 0 ? letters : digits;
-//       result += characters.charAt(Math.floor(Math.random() * characters.length));
-//   }
-  
-//   return result;
-// }
-
-
 function fileSeparator(xmlString) {
 
   const topics = [];

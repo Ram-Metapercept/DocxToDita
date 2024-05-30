@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 
-// function for validating .md and .mdx files in the directory
 async function fileValidator(folderPath) {
   try {
     const files = await fs.promises.readdir(folderPath);

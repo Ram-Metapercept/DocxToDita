@@ -10,11 +10,10 @@ function tagsValidator(content) {
   if (!body) {
     let hasContentAfterTitle = false;
 
-    // Check if there are elements after the title
     let nextElement = titleElement.nextSibling;
     while (nextElement) {
       if (nextElement.nodeType === 1) {
-        // Check if it's an element node
+    
         hasContentAfterTitle = true;
         break;
       }
@@ -32,7 +31,7 @@ function tagsValidator(content) {
     ) {
       const bodyElement = xmlDoc.createElement("body");
 
-      // Move all elements after the title into the body element
+
       nextElement = titleElement.nextSibling;
       while (nextElement) {
         const temp = nextElement.nextSibling;
@@ -40,7 +39,7 @@ function tagsValidator(content) {
         nextElement = temp;
       }
 
-      // Append the body element after the title element
+    
       titleElement.parentNode.insertBefore(
         bodyElement,
         titleElement.nextSibling
