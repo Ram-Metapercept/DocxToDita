@@ -2,7 +2,9 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const convertDocxToDita = require("./index")
 const app = express();
-const PORT = 8000;
+
+require("dotenv").config({path:"../.env"});
+const PORT = process.env.PORT ||8000 ;
 const path = require("path");
 const fs = require('fs');
 const outputFile = path.join(__dirname, "./output");
@@ -197,7 +199,7 @@ app.get("/api/download/:downloadId", (req, res) => {
   }
 });
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on ${PORT}`);
 });
 
 function cleanupUploadedZip(FolderDir) {

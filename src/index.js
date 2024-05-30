@@ -2,6 +2,7 @@
 const path = require("path");
 const mammoth = require("mammoth")
 const fs = require("fs")
+
 const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
 const cheerio = require("cheerio");
 const {cleanXMLStringP,cleanXMLStringNote}=require("./utils/NestedOlLiHandling.js")
@@ -36,7 +37,8 @@ const removeXref = require("./utils/removeRowEntry.js")
 const extractIds = require("./utils/extractIds.js")
 const XrefHrefIds = require("./utils/xrefHrefId.js")
 const outputDirName = "./output/";
-const PORT = 8000;
+require("dotenv").config({path:"../.env"});
+const PORT = process.env.PORT ||8000 ;
 const logData = {
   missingTags: {},
   handledTags: {},
@@ -460,7 +462,7 @@ async function convertDocxToDita(filePath) {
 
     const downloadId = Math.random().toString(36).substring(7);
 
-    const downloadLink = `http://localhost:${PORT}/api/download/${downloadId}`;
+    const downloadLink = `${process.env.BASE_URL}${PORT}/api/download/${downloadId}`;
 
     let fileName=path.parse(path.basename(filePath)).name+".zip";
   
