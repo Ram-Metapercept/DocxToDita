@@ -1,7 +1,4 @@
-
-const fs = require('fs');
 const xml2js = require('xml2js');
-const path = require('path');
 const {addXrefJsonData } = require('./StateManagement');
 
 function XrefHrefIds(xmlData) {
@@ -28,5 +25,4 @@ function XrefHrefIds(xmlData) {
     });
   
 }
-
 module.exports = XrefHrefIds;

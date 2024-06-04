@@ -1,5 +1,5 @@
 const { DOMParser, XMLSerializer } = require("xmldom");
-const generateRandomId = require("./generateRandomId.JS");
+const generateRandomId = require("./generateRandomId");
 
 function moveTitleAboveBody(xmlString) {
   const parser = new DOMParser();

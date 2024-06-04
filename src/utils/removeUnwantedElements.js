@@ -1,6 +1,6 @@
 const { schema } = require("../schema");
 const validateURL = require("./validateURL");
-const { addJsonData, addXrefJsonData, addContentData } = require('./StateManagement');
+
 function getColumnIndex(json) {
   let currentIndex = 1;
   let currentEntry = json;

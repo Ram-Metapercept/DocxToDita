@@ -1,7 +1,6 @@
 const { DOMParser, XMLSerializer } = require("xmldom");
 
 function dtdConcept(content) {
-  
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(content, "text/xml");
   const body = xmlDoc.getElementsByTagName("body")[0];

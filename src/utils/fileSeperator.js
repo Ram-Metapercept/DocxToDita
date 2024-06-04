@@ -6,7 +6,6 @@ function generateDITAMap(topics, ditaMapFilename) {
 
   topics.reverse().forEach((topic, index) => {
 
-    // Generate a random ID
       ditaMapContent += `<topicref  href="./${topic.title}.dita" />\n`;
   });
 

@@ -1,6 +1,4 @@
 const { DOMParser, XMLSerializer } = require("xmldom");
-
-// ------------------------------------------
 function addTopicTag(xmlString) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlString, "text/xml");

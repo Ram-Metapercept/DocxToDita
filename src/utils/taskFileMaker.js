@@ -13,7 +13,6 @@ const outputDirName = "./output/";
 
 function taskFileMaker(filePath, data) {
   return new Promise((resolve, reject) => {
-    // removing unwanted elements
     data = removeUnwantedElements2(
       data,
       {} ,

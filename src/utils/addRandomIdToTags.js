@@ -13,7 +13,7 @@ function addRandomIdsToTags(xmlString) {
             return randomLetter + randomNumber;
         }
 
-        let targetTags = ['table', 'ol', 'ul', 'li', 'p', 'title','conbody'];
+        let targetTags = ['table', 'ol', 'ul', 'li', 'p', 'title', 'conbody'];
 
         targetTags.forEach(tagName => {
             let elements = xmlDoc.getElementsByTagName(tagName);

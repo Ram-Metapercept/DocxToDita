@@ -2,15 +2,10 @@
 const path = require("path");
 const mammoth = require("mammoth")
 const fs = require("fs")
-
 const { HTMLToJSON, JSONToHTML } = require("html-to-json-parser");
 const cheerio = require("cheerio");
-const {cleanXMLStringP,cleanXMLStringNote}=require("./utils/NestedOlLiHandling.js")
-const npq=require("./utils/npq.js")
-const mno=require("./utils/mno.js")
-const abc=require("./utils/movePTagInsideLi.js")
-const abc1=require("./utils/abc1.js")
-const {replaceXmlStringP,replaceXmlStringNote,replaceXmlStringPWithSingleOl,replaceXmlStringNoteWithSingleOl}=require("./utils/WrapPtagOLWithLi.js")
+const { cleanXMLStringP, cleanXMLStringPWithOlLi, cleanXMLStringNote } = require("./utils/NestedOlLiHandling.js")
+const movePandNoteTagInsideLi = require("./utils/movePTagInsideLi.js")
 const addRandomIdToTopics = require("./utils/addRandomGeneratedId.js")
 const moveTitleAboveBody = require("./utils/moveTitleAboveBody.js");
 const moveTgroupClosingTagBeforeTable = require("./utils/moveTgroupClosingTagBeforeTable.js");
@@ -37,8 +32,8 @@ const removeXref = require("./utils/removeRowEntry.js")
 const extractIds = require("./utils/extractIds.js")
 const XrefHrefIds = require("./utils/xrefHrefId.js")
 const outputDirName = "./output/";
-require("dotenv").config({path:"../.env"});
-const PORT = process.env.PORT ||8000 ;
+require("dotenv").config({ path: "./.env" });
+const PORT = process.env.PORT || 8000;
 const logData = {
   missingTags: {},
   handledTags: {},
@@ -54,13 +49,12 @@ async function convertDocxToDita(filePath) {
   const outputId = Math.random().toString(36).substring(7);
 
   const OutputPath = path.join(outputDirName, outputId);
-  function transformElement(element) {
 
-  
+  function transformElement(element) {
     if (!element) {
       return;
     }
-  
+
     if (element.children) {
       element.children.forEach(transformElement);
     }
@@ -68,21 +62,21 @@ async function convertDocxToDita(filePath) {
     if (element?.type === "paragraph" && element?.styleId) {
 
       switch (element.styleId) {
-     
+
         case "NoteStyle":
           element.attributes = { type: "note" };
-         
+
           break;
         case "CautionStyle":
-          element.attributes = {  type: "caution" };
+          element.attributes = { type: "caution" };
           break;
         case "DangerStyle":
-          element.attributes = {type: "danger" };
+          element.attributes = { type: "danger" };
           break;
         default:
           break;
       }
-            }
+    }
 
     return element;
   }
@@ -105,8 +99,6 @@ async function convertDocxToDita(filePath) {
         'p.DangerStyle => note:fresh',
 
       ],
-
-
     };
     const { value: rawHtml } = await mammoth.convertToHtml(
       { path: filePath },
@@ -143,10 +135,7 @@ async function convertDocxToDita(filePath) {
     });
 
     $('img').each((index, element) => {
-
       const src = $(element).attr('src');
-
-
       const base64Prefix = 'data:image/';
       if (src.startsWith(base64Prefix)) {
         const mimeType = src.substring(base64Prefix.length, src.indexOf(';'));
@@ -158,8 +147,6 @@ async function convertDocxToDita(filePath) {
           const extension = isPng ? 'png' : 'jpg';
           const pathToSaveImage = `${OutputPath}/media/image${index}.${extension}`;
           const pathToSaveImagewithMedia = `media/image${index}.${extension}`;
-
-
           const path = converBase64ToImage(src, pathToSaveImage);
           $(element).attr('src', pathToSaveImagewithMedia);
         } else {
@@ -191,8 +178,8 @@ async function convertDocxToDita(filePath) {
 
     result = removeUnwantedElements(
       result,
-      {} ,
-      "" 
+      {},
+      ""
     );
 
     result = characterToEntity(result);
@@ -222,7 +209,7 @@ async function convertDocxToDita(filePath) {
           if (ele.type === "section" && ele.attributes?.class === "footnotes") {
             ele.content = [];
             ele.type = "";
-            ele.attributes = {}; 
+            ele.attributes = {};
           }
         });
       }
@@ -231,7 +218,6 @@ async function convertDocxToDita(filePath) {
 
     JSONToHTML(result).then(async (res) => {
       try {
-        // Replace <> and </> tags
         const cleanedUpContent = res.replace(/<\/*>/g, "");
 
         const cleanedUpJson = await HTMLToJSON(cleanedUpContent, false);
@@ -260,36 +246,18 @@ async function convertDocxToDita(filePath) {
         function capitalizeFirstWord(str) {
           return str.charAt(0).toUpperCase() + str.slice(1);
         }
-        
-         
 
         const removedIdFromXrefAttachedToTitle = attachIdToTitle(modifiedDitaCode)
-
-       
         XrefHrefIds(removedIdFromXrefAttachedToTitle)
- 
         let boldTagdeletion = removeBoldTags(removedIdFromXrefAttachedToTitle)
-       let pTagListing= cleanXMLStringP(boldTagdeletion)
-  //   let olLIStringP=replaceXmlStringP(boldTagdeletion)
-  //  let olLIStringNote= replaceXmlStringNote(olLIStringP)
-  // let PWithSingleOl= replaceXmlStringPWithSingleOl(olLIStringNote)
-  // let NoteWithSingleOl=replaceXmlStringNoteWithSingleOl(PWithSingleOl) 
-        // let g=pqr(boldTagdeletion)
-           // let h=abc(g)
-              // let r=mno(h)
-              // let b=npq(r)
-              // let d=abc1(b)
-              let NoteTagListing= cleanXMLStringNote(pTagListing)
+        let pTagListing = cleanXMLStringP(boldTagdeletion)
 
-              let h=abc(NoteTagListing)
-            
-      //  let r=mno(h)
-            
-              // let r=mno(h)
-              // let b=npq(r)
-              // let d=abc1(NoteTagListing)
-              // let getRandomIdAddedXmlData = addRandomIdToTags(h)
-        let topicWise = fileSeparator(h);
+        let cleanXMLStringPWithOlLiMultilevel = cleanXMLStringPWithOlLi(pTagListing)
+
+        let NoteTagListing = cleanXMLStringNote(cleanXMLStringPWithOlLiMultilevel)
+
+        let finallyMovedInsideLi = movePandNoteTagInsideLi(NoteTagListing)
+        let topicWise = fileSeparator(finallyMovedInsideLi);
 
         let newPath = filePath
           .replace(/\\/g, "/")
@@ -350,14 +318,12 @@ async function convertDocxToDita(filePath) {
             fileNameOnTitle;
 
           if (actualPath.endsWith(".doc")) {
-    
+
             outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
               /\.doc$/,
               ".dita"
             )}`;
           } else if (actualPath.endsWith(".docx")) {
-            // Replace ".docx" with ".dita"
-
             outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
               /\.docx$/,
               ".dita"
@@ -394,7 +360,7 @@ async function convertDocxToDita(filePath) {
               )}//EN" "${dtdType}.dtd">
              ${tc.content}`,
               {
-                encoding: 'utf-8', 
+                encoding: 'utf-8',
               }
             );
 
@@ -415,9 +381,10 @@ async function convertDocxToDita(filePath) {
 
           ditaFiles.forEach(file => {
             const OutputPath = path.join(outputDirName, outputId, file);
+
             extractIds(OutputPath);
 
-      
+
             fs.readFile(OutputPath, 'utf8', (err, content) => {
               if (err) {
                 return console.error('Error reading file:', err);
@@ -462,18 +429,16 @@ async function convertDocxToDita(filePath) {
 
     const downloadId = Math.random().toString(36).substring(7);
 
-    const downloadLink = `${process.env.BASE_URL}${PORT}/api/download/${downloadId}`;
+     const downloadLink = `${process.env.BASE_URL}/api/download/${downloadId}`;
+    // const downloadLink = `http://localhost:8000/api/download/${downloadId}`;
+    let fileName = path.parse(path.basename(filePath)).name + ".zip";
 
-    let fileName=path.parse(path.basename(filePath)).name+".zip";
-  
     setInputFileName(fileName)
-    const downloadPath = path.join(__dirname, "downloads", downloadId);
+    const downloadPath = path.join(__dirname, "../downloads", downloadId);
     fs.mkdirSync(downloadPath, { recursive: true });
     const outputZipPath = path.join(downloadPath, `${fileName}`);
-
-    // Create zip file
     const archive = archiver('zip', {
-      zlib: { level: 9 }, // Set compression level
+      zlib: { level: 9 },
     });
 
     const output = fs.createWriteStream(outputZipPath);
@@ -491,11 +456,10 @@ async function convertDocxToDita(filePath) {
       let moveTitle = NestinTopicTag(addingRandomIdToTopic);
       let addIDtoFig = addIdTOFigTag(moveTitle);
       let footnoterelatedOlLI = replaceOlWIthFn(addIDtoFig)
-
       return footnoterelatedOlLI
     }
     console.log("Docx to Dita converted succesfully")
-    return downloadLink
+    return { downloadLink, outputId, downloadId }
   } catch (error) {
     console.error("Error converting DOCX to DITA:", error);
   }

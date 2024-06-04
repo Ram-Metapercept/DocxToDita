@@ -12,8 +12,6 @@ function addRandomIdToFig(xmlString) {
                    Array.from({ length: 7 }, () => digits.charAt(Math.floor(Math.random() * digits.length))).join('');
         return id;
     }
-
-
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
 
