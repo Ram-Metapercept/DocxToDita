@@ -279,11 +279,100 @@ async function convertDocxToDita(filePath) {
         }
         const fileInfo = {}
         fileInfo.nestObj = []
-        topicWise.topics.map((tc, index) => {
+        let fileNames = {};
+        // topicWise.topics.map((tc, index) => {
 
+        //   let dtdType = "topic";
+        //   tc.content = tagsValidator(tc.content);
+
+        //   let result = dtdConcept(tc.content);
+
+        //   if (result.boolValue) {
+        //     dtdType = "concept";
+        //     tc.content = result.content;
+        //   } else if (result.boolValue === false) {
+        //     let result2 = dtdReference(tc.content);
+        //     if (result2.boolValue) {
+        //       dtdType = "reference";
+        //       tc.content = result2.content;
+        //     } else if (result2.boolValue === false) {
+        //       let temp = dtdTask(tc.content);
+        //       if (temp.boolValue) {
+        //         dtdType = "task";
+
+        //         tc.content = temp.content;
+        //       }
+        //     }
+        //   }
+
+        //   let fileNameOnTitle =
+        //     tc.title
+        //       .replaceAll(" ", "_")
+        //       .replaceAll("?", "")
+        //       .replaceAll(".", "").replace(/[^\w\s]/gi, '') + ".docx";
+
+        //   let outputFilePath = "";
+
+        //   let actualPath =
+        //     newPath.split("/").slice(0, -1).join("/") +
+        //     "/" +
+        //     fileNameOnTitle;
+
+        //   if (actualPath.endsWith(".doc")) {
+
+        //     outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
+        //       /\.doc$/,
+        //       ".dita"
+        //     )}`;
+        //   } else if (actualPath.endsWith(".docx")) {
+        //     outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
+        //       /\.docx$/,
+        //       ".dita"
+        //     )}`;
+
+        //   }
+        //   const outputDir = path.dirname(outputFilePath);
+        //   if (!fs.existsSync(outputDir)) {
+        //     fs.mkdirSync(outputDir, { recursive: true });
+        //   }
+        //   fileInfo.nestObj.push({
+        //     level: tc.level,
+        //     path: outputFilePath,
+        //     child: []
+        //   })
+        //   if (tc.level !== undefined) {
+        //     fs.writeFileSync(
+        //       outputFilePath,
+        //       `<?xml version="1.0" encoding="UTF-8"?>
+        //   <!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(
+        //         dtdType
+        //       )}//EN" "${dtdType}.dtd">
+        //      ${tc.content}`,
+        //       {
+        //         encoding: 'utf-8',
+        //       }
+        //     );
+        //   } else if (!isBodyEmpty) {
+        //     fs.writeFileSync(
+        //       outputFilePath,
+        //       `<?xml version="1.0" encoding="UTF-8"?>
+        //    <!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(
+        //         dtdType
+        //       )}//EN" "${dtdType}.dtd">
+        //      ${tc.content}`,
+        //       {
+        //         encoding: 'utf-8',
+        //       }
+        //     );
+
+        //   }
+
+        //   addData(fileInfo)
+
+        // });
+        topicWise.topics.map((tc, index) => {
           let dtdType = "topic";
           tc.content = tagsValidator(tc.content);
-
           let result = dtdConcept(tc.content);
 
           if (result.boolValue) {
@@ -298,76 +387,74 @@ async function convertDocxToDita(filePath) {
               let temp = dtdTask(tc.content);
               if (temp.boolValue) {
                 dtdType = "task";
-
                 tc.content = temp.content;
               }
             }
           }
 
-          let fileNameOnTitle =
-            tc.title
-              .replaceAll(" ", "_")
-              .replaceAll("?", "")
-              .replaceAll(".", "").replace(/[^\w\s]/gi, '') + ".docx";
+          let baseName = tc.title
+            .replaceAll(" ", "_")
+            .replaceAll("?", "")
+            .replaceAll(".", "")
+            .replace(/[^\w\s]/gi, '');
+
+          let uniqueName = baseName + ".docx";
+
+          if (fileNames[baseName]) {
+            let count = fileNames[baseName];
+            fileNames[baseName] = count + 1; // Increment the count
+            uniqueName = baseName + `_${count + 1}.docx`; // Generate the new unique name with the incremented count
+          } else {
+            fileNames[baseName] = 1; // Initialize the count for this base name
+          }
+
+          // If this is not the first instance, adjust the unique name accordingly
+          if (fileNames[baseName] > 1) {
+            uniqueName = baseName + `_${fileNames[baseName] - 1}.docx`;
+          } else {
+            uniqueName = baseName + ".docx";
+          }
 
           let outputFilePath = "";
-
-          let actualPath =
-            newPath.split("/").slice(0, -1).join("/") +
-            "/" +
-            fileNameOnTitle;
+          let actualPath = newPath.split("/").slice(0, -1).join("/") + "/" + uniqueName;
+          let fileNameLowerCased = uniqueName.toLowerCase();
 
           if (actualPath.endsWith(".doc")) {
-
-            outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
+            outputFilePath = `${OutputPath}/${fileNameLowerCased.replace(
               /\.doc$/,
               ".dita"
             )}`;
           } else if (actualPath.endsWith(".docx")) {
-            outputFilePath = `${OutputPath}/${fileNameOnTitle.replace(
+            outputFilePath = `${OutputPath}/${fileNameLowerCased.replace(
               /\.docx$/,
               ".dita"
             )}`;
-
           }
+
           const outputDir = path.dirname(outputFilePath);
           if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
           }
+
           fileInfo.nestObj.push({
             level: tc.level,
             path: outputFilePath,
             child: []
-          })
-          if (tc.level !== undefined) {
-            fs.writeFileSync(
-              outputFilePath,
-              `<?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(
-                dtdType
-              )}//EN" "${dtdType}.dtd">
-             ${tc.content}`,
-              {
-                encoding: 'utf-8',
-              }
-            );
-          } else if (!isBodyEmpty) {
-            fs.writeFileSync(
-              outputFilePath,
-              `<?xml version="1.0" encoding="UTF-8"?>
-           <!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(
-                dtdType
-              )}//EN" "${dtdType}.dtd">
-             ${tc.content}`,
-              {
-                encoding: 'utf-8',
-              }
-            );
+          });
 
+          if (tc.level !== undefined || !isBodyEmpty) {
+            fs.writeFileSync(
+              outputFilePath,
+              `<?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE ${dtdType} PUBLIC "-//OASIS//DTD DITA ${capitalizeFirstWord(dtdType)}//EN" "${dtdType}.dtd">
+                ${tc.content}`,
+              {
+                encoding: 'utf-8',
+              }
+            );
           }
 
-          addData(fileInfo)
-
+          addData(fileInfo);
         });
 
         let fetchData = getData()
@@ -408,8 +495,9 @@ async function convertDocxToDita(filePath) {
                   FileName: aDict[id].FileName
                 }));
               matchedDetails.forEach(item => {
+                let lowercasesFileName = item.FileName.toLowerCase();
                 const regex = new RegExp(`<xref href="#${item.id}"`, 'g');
-                const replacement = `<xref href="./${item.FileName}#${item.TopicId}/${item.id}"`;
+                const replacement = `<xref href="./${lowercasesFileName}#${item.TopicId}/${item.id}"`;
                 modifiedContent = modifiedContent.replaceAll(regex, replacement);
               });
 
@@ -549,8 +637,8 @@ function DitaMapMaker(fetchData, title, OutputPath) {
   const xmlString = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
  <map id="${mapId}" xml:lang="en-us">\n    <title>${title}</title>\n ${createXMLStructure(nestedFiles)}</map>`;
-
-  fs.writeFileSync(`${OutputPath}/${title.replace(/ /g, "_")}.ditamap`, xmlString);
+ let loweCaseTitleName = title.toLowerCase()
+  fs.writeFileSync(`${OutputPath}/${loweCaseTitleName.replace(/ /g, "_")}.ditamap`, xmlString);
   console.log("XML structure created successfully!");
 
   resetData()
